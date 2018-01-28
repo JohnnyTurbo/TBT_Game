@@ -5,8 +5,9 @@ using UnityEngine;
 public class UnitController : MonoBehaviour
 {
     public int numUnits, attackStat, defenseStat, movementRange, AttackRange;
-    public bool /*isPlayerOne,*/ canMove, canAttack;
-    public int curXPos, curYPos;
+    public bool canMove, canAttack;
+    public bool isMoving, isAttacking;
+    public IntVector2 curCoords;
     public int unitTeamID;
     public Material p1SelectMat, p2SelectMat;
 
@@ -53,9 +54,19 @@ public class UnitController : MonoBehaviour
         //Hide Menu
         //Debug.Log("OnUnitDeselect()");
         gameObject.GetComponent<MeshRenderer>().material = startingMat;
-        gameController.curUnit = null;
         gameController.HideActionsMenu();
         gameController.HideUnitStats();
+
+        if (isMoving)
+        {
+            gameController.CancelMove();
+        }
+        if (isAttacking)
+        {
+            gameController.CancelAttack();
+        }
+
+        gameController.curUnit = null;
         gameController.curState = GameState.PlayerSelectTile;
     }
 

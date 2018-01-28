@@ -144,6 +144,7 @@ public class GameController : MonoBehaviour {
                         //Attack Succeeded
                         Debug.Log("Attack Succeeded");
                         curUnit.canAttack = false;
+                        curUnit.isAttacking = false;
                         HideAttackMenu();
                         ShowActionsMenu();
                         curState = GameState.PlayerSelectAction;
@@ -178,8 +179,7 @@ public class GameController : MonoBehaviour {
                 GameObject tileToBeSpawned = (x + y) % 2 == 0 ? whiteTilePrefab : blackTilePrefab;
                 Vector3 newTileLoc = new Vector3(x * tileSize, 0f, y * tileSize);
                 GameObject newTile = Instantiate(tileToBeSpawned, newTileLoc, Quaternion.identity);
-                newTile.GetComponent<TileController>().xPos = x;
-                newTile.GetComponent<TileController>().yPos = y;
+                newTile.GetComponent<TileController>().curCoords = new IntVector2(x, y);
                 mapGrid[x, y] = newTile.GetComponent<TileController>();
                 //tileList.Add(newTile);
             }
@@ -197,8 +197,7 @@ public class GameController : MonoBehaviour {
 
             UnitController newUnitController = newUnit.GetComponent<UnitController>();
             newUnitController.unitTeamID = 0;
-            newUnitController.curXPos = i;
-            newUnitController.curYPos = 0;
+            newUnitController.curCoords = new IntVector2(i, 0);
             mapGrid[i, 0].isOccupied = true;
             mapGrid[i, 0].unitOnTile = newUnit;
             unitsInGame[0].Add(newUnitController);
@@ -210,8 +209,7 @@ public class GameController : MonoBehaviour {
             GameObject newUnit = Instantiate(basicLandUnitPrefab, newUnitLoc, Quaternion.identity);
             UnitController newUnitController = newUnit.GetComponent<UnitController>();
             newUnitController.unitTeamID = 1;
-            newUnitController.curXPos = i;
-            newUnitController.curYPos = gridSizeY - 1;
+            newUnitController.curCoords = new IntVector2(i, gridSizeY - 1);
             mapGrid[i, gridSizeY - 1].isOccupied = true;
             mapGrid[i, gridSizeY - 1].unitOnTile = newUnit;
             unitsInGame[1].Add(newUnitController);
@@ -223,6 +221,7 @@ public class GameController : MonoBehaviour {
         curState = GameState.PlayerMoveUnit;
         HideActionsMenu();
         ShowMoveMenu();
+        curUnit.isMoving = true;
     }
 
     public void AttackButtonSelect()
@@ -231,6 +230,7 @@ public class GameController : MonoBehaviour {
         curState = GameState.PlayerAttackUnit;
         HideActionsMenu();
         ShowAttackMenu();
+        curUnit.isAttacking = true;
     }
 
     public void CancelButtonSelect()
@@ -246,22 +246,27 @@ public class GameController : MonoBehaviour {
         curUnit.canMove = false;
         curSelectedTile.unitOnTile = curUnit.gameObject;
         tempTile.unitOnTile = curUnit.gameObject;
-        curUnit.curXPos = tempTile.xPos;
-        curUnit.curYPos = tempTile.yPos;
+        curUnit.curCoords = tempTile.curCoords;
         tempTile = null;
         curSelectedTile.unitOnTile = null;
         HideMoveMenu();
         ShowActionsMenu();
         curState = GameState.PlayerSelectAction;
+        curUnit.isMoving = false;
     }
 
     public void CancelMoveButtonSelect()
     {
-        HideMoveMenu();
+        CancelMove();
         ShowActionsMenu();
+        curState = GameState.PlayerSelectAction;
+    }
+
+    public void CancelMove() {
+        HideMoveMenu();
         curUnit.transform.position = curSelectedTile.transform.position;
         curSelectedTile.unitOnTile = curUnit.gameObject;
-        curState = GameState.PlayerSelectAction;
+        curUnit.isMoving = false;
     }
 
     public void EndTurnButtonSelect()
@@ -280,9 +285,15 @@ public class GameController : MonoBehaviour {
 
     public void CancelAttackButtonSelect()
     {
-        HideAttackMenu();
+        CancelAttack();
         ShowActionsMenu();
         curState = GameState.PlayerSelectAction;
+    }
+
+    public void CancelAttack()
+    {
+        HideAttackMenu();
+        curUnit.isAttacking = false;
     }
 
     public void ShowUnitStats(UnitController selectedUnit)

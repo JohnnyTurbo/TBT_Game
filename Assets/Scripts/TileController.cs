@@ -6,8 +6,8 @@ using UnityEngine.EventSystems;
 public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler {
 
     public bool isOccupied = false;
-    public int xPos, yPos;
-    //public IntVector2 curCoords;
+    //public int xPos, yPos;
+    public IntVector2 curCoords;
     public Material hoverMat;
     public GameObject unitOnTile;
 
@@ -75,7 +75,7 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
 
     public bool AttemptUnitMove(UnitController curUnit)
     {
-        if (unitOnTile == null && curUnit.movementRange >= CalculateDist(curUnit.curXPos, curUnit.curYPos)) 
+        if (unitOnTile == null && curUnit.movementRange >= CalculateDist(curUnit.curCoords)) 
         {
             curUnit.transform.position = this.transform.position;
             return true;
@@ -92,7 +92,7 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
         {
             UnitController otherUnit = unitOnTile.GetComponent<UnitController>();
 
-            if (curUnit.AttackRange >= CalculateDist(curUnit.curXPos, curUnit.curYPos) && !curUnit.OnSameTeam(otherUnit))
+            if (curUnit.AttackRange >= CalculateDist(curUnit.curCoords) && !curUnit.OnSameTeam(otherUnit))
             {
                 otherUnit.numUnits = Mathf.CeilToInt(((otherUnit.numUnits * otherUnit.defenseStat) - (curUnit.numUnits
                                                     * curUnit.attackStat)) / (float)otherUnit.defenseStat);
@@ -107,18 +107,18 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
         return false;
     }
 
-    /*
+    
     public int CalculateDist(IntVector2 otherCoords)
     {
         return (Mathf.Abs(curCoords.x - otherCoords.x) + Mathf.Abs(curCoords.y - otherCoords.y));
     }
-    */
+    
 
     //Old implementation. Delete Later
-    
+    /*
     public int CalculateDist(int otherXPos, int otherYpos)
     {
         return (Mathf.Abs(xPos - otherXPos) + Mathf.Abs(yPos - otherYpos));
     }
-    
+    */
 }
