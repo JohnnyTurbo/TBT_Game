@@ -8,10 +8,9 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     public bool isOccupied = false;
     //public int xPos, yPos;
     public IntVector2 curCoords;
-    public Material hoverMat;
+    public Material startingMat, hoverMat, movementMat, attackMat;
     public GameObject unitOnTile;
 
-    Material startingMat;
     GameController gameController;
 
     void Awake()
@@ -37,22 +36,31 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
  
     void HoverTileEnter()
     {
-        gameObject.GetComponent<MeshRenderer>().material = hoverMat;
+        //ChangeTileMaterial(hoverMat);
         gameController.curHoveredTile = this;
     }
 
     void HoverTileExit()
     {
-        gameObject.GetComponent<MeshRenderer>().material = startingMat;
+        //ChangeTileMaterial(startingMat);
         gameController.curHoveredTile = null;
+    }
+
+    public void ChangeTileMaterial(Material newMat)
+    {
+        gameObject.GetComponent<MeshRenderer>().material = newMat;
     }
 
     public void OnTileSelect()
     {
+        gameController.curSelectedTile = this;
+
         if (gameController.curUnit != null)
         {
             //Debug.Log("Deselecting GO with ID: " + gameController.curUnit.GetInstanceID());
+
             gameController.curUnit.OnUnitDeselect();
+            gameController.curUnit = null;
         }
 
         if(unitOnTile != null)

@@ -110,7 +110,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isOccupied: 0
-  xPos: 4
-  yPos: 3
+  curCoords:
+    x: 0
+    y: 0
+  startingMat: {fileID: 0}
   hoverMat: {fileID: 2100000, guid: f61e3fb5fe6427045b75d4b21fe542f9, type: 2}
+  movementMat: {fileID: 2100000, guid: 4ad59cde7193e9647bdfe7b865ea3a9b, type: 2}
+  attackMat: {fileID: 2100000, guid: 2ed9b96c4a1335846a4ced9a012941ec, type: 2}
   unitOnTile: {fileID: 0}

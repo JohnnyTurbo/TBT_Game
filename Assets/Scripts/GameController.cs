@@ -26,6 +26,7 @@ public class GameController : MonoBehaviour {
     Text numUnitsText, attackText, defenseText, movementText, rangeText, debugStateText;
     Button moveConfirmButton, moveActionButton, attackActionButton;
     TileController tempTile = null;
+    List<TileController> availableTiles;
 
     void Awake()
     {
@@ -103,7 +104,7 @@ public class GameController : MonoBehaviour {
                     curUnit.OnUnitDeselect();
                     if(curHoveredTile.unitOnTile != null)
                     {
-                        curSelectedTile = curHoveredTile;
+                        //curSelectedTile = curHoveredTile;
                         curHoveredTile.OnTileSelect();
                     }
                 }
@@ -111,26 +112,42 @@ public class GameController : MonoBehaviour {
 
             case GameState.PlayerMoveUnit:
                 debugStateText.text = "GameState: PlayerMoveUnit";
-                if (Input.GetButtonDown("Fire1") && curHoveredTile != null)
+                if (Input.GetButtonDown("Fire1"))
                 {
-                    if (curHoveredTile.AttemptUnitMove(curUnit))
+
+                    if(curHoveredTile == null)
                     {
-                        //Debug.Log("Move Succeeded");
-                        if (curHoveredTile == curSelectedTile)
+                        Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile is null");
+                        //curUnit.OnUnitDeselect();
+                    }
+                    else if(curHoveredTile.unitOnTile != null)
+                    {
+                        Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile.unitOntile is not null");
+
+                        //curUnit.OnUnitDeselect();
+                        //curHoveredTile.unitOnTile.GetComponent<UnitController>().OnUnitSelect();
+                        curHoveredTile.OnTileSelect();
+                    }
+                    else if (curHoveredTile.AttemptUnitMove(curUnit))
+                    {
+                        Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile is attemptUnitMove(curUnit) is true");
+
+                        curSelectedTile.unitOnTile = null;
+                        Debug.Log("curSelected Tile is at: " + curSelectedTile.curCoords.ToString());
+                        curHoveredTile.unitOnTile = curUnit.gameObject;
+                        curUnit.curCoords = curHoveredTile.curCoords;
+                        curUnit.isMoving = false;
+                        curUnit.canMove = false;
+                        ShowActionsMenu();
+                        if (curUnit.canAttack)
                         {
-                            curSelectedTile.unitOnTile = curUnit.gameObject;
-                            moveConfirmButton.interactable = false;
+                            //Make Unit Attack
+                            curUnit.AttackUnit();
                         }
                         else
                         {
-                            curSelectedTile.unitOnTile = null;
-                            moveConfirmButton.interactable = true;
+                            //Unit out of actions
                         }
-                        tempTile = curHoveredTile;
-                    }
-                    else
-                    {
-                        //Debug.Log("Move Failed");
                     }
                 }
                 break;
@@ -216,26 +233,44 @@ public class GameController : MonoBehaviour {
         }
     }
 
+    public List<TileController> FindAvailableTiles(IntVector2 startLoc, int maxDist)
+    {
+        availableTiles = new List<TileController>();
+        FindNextTile(startLoc, startLoc, maxDist);
+        return availableTiles;
+    }
+
+    void FindNextTile(IntVector2 startLoc, IntVector2 curLoc, int maxDist)
+    {
+        //Debug.Log("FindNextTile(startLoc: " + startLoc.ToString() + " curLoc: " + curLoc.ToString() + " maxDist: " + maxDist + ")");
+        if (IntVector2.Distance(startLoc, curLoc) > maxDist || !IntVector2.OnGrid(curLoc, gridSizeX, gridSizeY))
+        {
+            return;
+        }
+
+        else if(!availableTiles.Contains(mapGrid[curLoc.x, curLoc.y]))
+        {
+
+            availableTiles.Add(mapGrid[curLoc.x, curLoc.y]);
+            FindNextTile(startLoc, curLoc + IntVector2.coordUp, maxDist);
+            FindNextTile(startLoc, curLoc + IntVector2.coordRight, maxDist);
+            FindNextTile(startLoc, curLoc + IntVector2.coordDown, maxDist);
+            FindNextTile(startLoc, curLoc + IntVector2.coordLeft, maxDist);
+        }
+    }
+
     public void MoveButtonSelect()
     {
-        curState = GameState.PlayerMoveUnit;
-        HideActionsMenu();
-        ShowMoveMenu();
-        curUnit.isMoving = true;
+        curUnit.MoveUnit();
     }
 
     public void AttackButtonSelect()
     {
-        //HideActionsMenu();
-        curState = GameState.PlayerAttackUnit;
-        HideActionsMenu();
-        ShowAttackMenu();
-        curUnit.isAttacking = true;
+        curUnit.AttackUnit();
     }
 
     public void CancelButtonSelect()
     {
-        //curState = GameState.PlayerSelectTile;
         curUnit.OnUnitDeselect();
         HideActionsMenu();
         HideUnitStats();
@@ -264,8 +299,6 @@ public class GameController : MonoBehaviour {
 
     public void CancelMove() {
         HideMoveMenu();
-        curUnit.transform.position = curSelectedTile.transform.position;
-        curSelectedTile.unitOnTile = curUnit.gameObject;
         curUnit.isMoving = false;
     }
 
@@ -454,5 +487,38 @@ public struct IntVector2
     {
         IntVector2 diff = new IntVector2(v1.x - v2.x, v1.y - v2.y);
         return diff;
+    }
+
+    /// <summary>
+    /// Returns the distance between two points. Distance is the number of IntVector2s that would need to be visited
+    /// when traveling from v1 to v2
+    /// </summary>
+    /// <param name="v1">Starting Point</param>
+    /// <param name="v2">Ending Point</param>
+    /// <returns></returns>
+    public static int Distance(IntVector2 v1, IntVector2 v2)
+    {
+        IntVector2 diff = v1 - v2;
+        int dist = (Mathf.Abs(diff.x) + Mathf.Abs(diff.y));
+        return dist;
+    }
+
+    /// <summary>
+    /// Returns true if the IntVector2 is on the grid
+    /// </summary>
+    /// <param name="curLoc">Current IntVector2 to test on</param>
+    /// <param name="gridSizeX">Horizontal Grid Size</param>
+    /// <param name="gridSizeY">Vertical Grid Size</param>
+    /// <returns></returns>
+    public static bool OnGrid(IntVector2 curLoc, int gridSizeX, int gridSizeY)
+    {
+        if(curLoc.x < 0 || curLoc.y < 0 || curLoc.x >= gridSizeX || curLoc.y >= gridSizeY)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 }

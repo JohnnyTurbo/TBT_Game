@@ -12,7 +12,7 @@ public class UnitController : MonoBehaviour
     public Material p1SelectMat, p2SelectMat;
 
     GameController gameController;
-
+    List<TileController> availTiles;
     Material startingMat;
 
     void Awake()
@@ -33,11 +33,28 @@ public class UnitController : MonoBehaviour
     public void OnUnitSelect()
     {
         //Show Menu
-        //Debug.Log("OnUnitSelect()");
+        Debug.Log("OnUnitSelect()");
         if (gameController.playerTeamID == unitTeamID)
         {
             gameObject.GetComponent<MeshRenderer>().material = p1SelectMat;
-            gameController.curState = GameState.PlayerSelectAction;
+            //gameController.curState = GameState.PlayerSelectAction;
+            if (canMove)
+            {
+                //Select Move Action
+                MoveUnit();
+            }
+            else if (canAttack)
+            {
+                //Select Attack Action
+                //gameController.curState = GameState.PlayerAttackUnit;
+                AttackUnit();
+            }
+            else
+            {
+                //Show Actions Menu
+                //Maybe display message about no available actions
+                gameController.curState = GameState.PlayerSelectAction;
+            }
             gameController.ShowActionsMenu();
         }
         else
@@ -52,22 +69,66 @@ public class UnitController : MonoBehaviour
     public void OnUnitDeselect()
     {
         //Hide Menu
-        //Debug.Log("OnUnitDeselect()");
+        Debug.Log("OnUnitDeselect()");
+        UnhighlightTiles();
         gameObject.GetComponent<MeshRenderer>().material = startingMat;
         gameController.HideActionsMenu();
         gameController.HideUnitStats();
 
         if (isMoving)
         {
-            gameController.CancelMove();
+            isMoving = false;
         }
         if (isAttacking)
         {
-            gameController.CancelAttack();
+            isAttacking = false;
         }
 
         gameController.curUnit = null;
         gameController.curState = GameState.PlayerSelectTile;
+    }
+
+    public void MoveUnit()
+    {
+        UnhighlightTiles();
+        isMoving = true;
+        gameController.curState = GameState.PlayerMoveUnit;
+        availTiles = new List<TileController>();
+        availTiles = gameController.FindAvailableTiles(curCoords, movementRange);
+        //Debug.Log("There are " + availTiles.Count + " tiles available to move on.");
+        foreach (TileController curTile in availTiles)
+        {
+            curTile.ChangeTileMaterial(curTile.movementMat);
+        }
+    }
+
+    public void AttackUnit()
+    {
+        UnhighlightTiles();
+        isAttacking = true;
+        gameController.curState = GameState.PlayerAttackUnit;
+        availTiles = new List<TileController>();
+        availTiles = gameController.FindAvailableTiles(curCoords, AttackRange);
+
+        foreach(TileController curTile in availTiles)
+        {
+            curTile.ChangeTileMaterial(curTile.attackMat);
+        }
+    }
+
+    public void UnhighlightTiles()
+    {
+        if(availTiles == null)
+        {
+            return;
+        }
+        else
+        {
+            foreach(TileController curTile in availTiles)
+            {
+                curTile.ChangeTileMaterial(curTile.startingMat);
+            }
+        }
     }
 
     public bool OnSameTeam(UnitController otherUnit)
