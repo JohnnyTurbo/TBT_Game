@@ -21,6 +21,7 @@ public class GameController : MonoBehaviour {
     public GameObject uiObject;
     public GameState curState;
     public List<UnitController>[] unitsInGame;
+    public GameObject cursor;
 
     GameObject actionCanvas, statCanvas, moveUnitCanvas, attackUnitCanvas, debugCanvas;
     Text numUnitsText, attackText, defenseText, movementText, rangeText, debugStateText;
@@ -72,6 +73,7 @@ public class GameController : MonoBehaviour {
         attackUnitCanvas.SetActive(false);
         InitializeMap();
         SpawnUnits();
+        cursor = Instantiate(cursor, new Vector3(1000, 1000, 1000), Quaternion.identity);
         curState = GameState.PlayerSelectTile;
     }
 
@@ -117,12 +119,12 @@ public class GameController : MonoBehaviour {
 
                     if(curHoveredTile == null)
                     {
-                        Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile is null");
+                        //Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile is null");
                         //curUnit.OnUnitDeselect();
                     }
                     else if(curHoveredTile.unitOnTile != null)
                     {
-                        Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile.unitOntile is not null");
+                        //Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile.unitOntile is not null");
 
                         //curUnit.OnUnitDeselect();
                         //curHoveredTile.unitOnTile.GetComponent<UnitController>().OnUnitSelect();
@@ -130,10 +132,10 @@ public class GameController : MonoBehaviour {
                     }
                     else if (curHoveredTile.AttemptUnitMove(curUnit))
                     {
-                        Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile is attemptUnitMove(curUnit) is true");
+                        //Debug.Log("curState is PlayerMoveUnit, Fire1 down, curHoveredTile is attemptUnitMove(curUnit) is true");
 
                         curSelectedTile.unitOnTile = null;
-                        Debug.Log("curSelected Tile is at: " + curSelectedTile.curCoords.ToString());
+                        //Debug.Log("curSelected Tile is at: " + curSelectedTile.curCoords.ToString());
                         curHoveredTile.unitOnTile = curUnit.gameObject;
                         curUnit.curCoords = curHoveredTile.curCoords;
                         curUnit.isMoving = false;
@@ -147,6 +149,7 @@ public class GameController : MonoBehaviour {
                         else
                         {
                             //Unit out of actions
+                            curUnit.UnhighlightTiles();
                         }
                     }
                 }
@@ -154,7 +157,55 @@ public class GameController : MonoBehaviour {
 
             case GameState.PlayerAttackUnit:
                 debugStateText.text = "GameState: PlayerAttackUnit";
-                if(Input.GetButtonDown("Fire1") && curHoveredTile != null)
+
+                if (Input.GetButtonDown("Fire1"))
+                {
+                    if(curHoveredTile == null)
+                    {
+                        Debug.Log("curState is PlayerAttackUnit, Fire1 down, curHoveredTile is null");
+                    }
+                    else if(curHoveredTile.unitOnTile != null)
+                    {
+                        if(curHoveredTile.unitOnTile.GetComponent<UnitController>().unitTeamID == playerTeamID)
+                        {
+                            //Clicking on a unit on the same team
+                            curHoveredTile.OnTileSelect();
+                        }
+                        else if(curHoveredTile.unitOnTile.GetComponent<UnitController>().unitTeamID != playerTeamID)
+                        {
+                            //Clicking on a unit on another team
+                            if (curHoveredTile.AttemptUnitAttack(curUnit))
+                            {
+                                //Attack Success
+                                curUnit.canAttack = false;
+                                curUnit.isAttacking = false;
+                                ShowActionsMenu();
+                                if (curUnit.canMove)
+                                {
+                                    //Select Move Action
+                                    curUnit.MoveUnit();
+                                }
+                                else
+                                {
+                                    //Unit out of actions
+                                    curUnit.UnhighlightTiles();
+                                }
+                            }
+                            else
+                            {
+                                //Attack Failed
+                            }
+                        }
+                        else
+                        {
+                            //Clicking on a unit not on a team
+                        }
+                    }
+                }
+
+                //Old Implementation
+                /*
+                if (Input.GetButtonDown("Fire1") && curHoveredTile != null)
                 {
                     if (curHoveredTile.AttemptUnitAttack(curUnit))
                     {
@@ -172,6 +223,7 @@ public class GameController : MonoBehaviour {
                         Debug.Log("Attack Failed");
                     }
                 }
+                */
                 break;
 
             case GameState.EnemyTurn:

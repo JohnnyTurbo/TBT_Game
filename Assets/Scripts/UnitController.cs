@@ -33,7 +33,7 @@ public class UnitController : MonoBehaviour
     public void OnUnitSelect()
     {
         //Show Menu
-        Debug.Log("OnUnitSelect()");
+        //Debug.Log("OnUnitSelect()");
         if (gameController.playerTeamID == unitTeamID)
         {
             gameObject.GetComponent<MeshRenderer>().material = p1SelectMat;
@@ -69,7 +69,7 @@ public class UnitController : MonoBehaviour
     public void OnUnitDeselect()
     {
         //Hide Menu
-        Debug.Log("OnUnitDeselect()");
+        //Debug.Log("OnUnitDeselect()");
         UnhighlightTiles();
         gameObject.GetComponent<MeshRenderer>().material = startingMat;
         gameController.HideActionsMenu();
@@ -109,10 +109,19 @@ public class UnitController : MonoBehaviour
         gameController.curState = GameState.PlayerAttackUnit;
         availTiles = new List<TileController>();
         availTiles = gameController.FindAvailableTiles(curCoords, AttackRange);
-
+        int numEnemiesInRange = 0;
         foreach(TileController curTile in availTiles)
         {
             curTile.ChangeTileMaterial(curTile.attackMat);
+            if(curTile.unitOnTile != null && curTile.unitOnTile.GetComponent<UnitController>().unitTeamID 
+                != gameController.playerTeamID)
+            {
+                numEnemiesInRange++;
+            }
+        }
+        if(numEnemiesInRange == 0)
+        {
+            Debug.Log("No enemies in range");
         }
     }
 

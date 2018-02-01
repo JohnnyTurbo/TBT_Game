@@ -38,12 +38,13 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     {
         //ChangeTileMaterial(hoverMat);
         gameController.curHoveredTile = this;
+        gameController.cursor.transform.position = gameObject.transform.position + new Vector3 (0f, 0.00001f, 0f);
     }
 
     void HoverTileExit()
     {
         //ChangeTileMaterial(startingMat);
-        gameController.curHoveredTile = null;
+        //gameController.curHoveredTile = null;
     }
 
     public void ChangeTileMaterial(Material newMat)

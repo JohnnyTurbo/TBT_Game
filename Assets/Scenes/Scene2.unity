@@ -1653,7 +1653,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_EventMask:
     serializedVersion: 2
-    m_Bits: 4294967039
+    m_Bits: 4294966527
   m_MaxRayIntersections: 0
 --- !u!1 &648580760
 GameObject:
@@ -2558,6 +2558,7 @@ MonoBehaviour:
   curSelectedTile: {fileID: 0}
   uiObject: {fileID: 1874018203}
   curState: 0
+  cursor: {fileID: 1774496292042796, guid: 05e3b0489d85dd1488f212c1acd68bcd, type: 2}
 --- !u!4 &1297470025
 Transform:
   m_ObjectHideFlags: 0
