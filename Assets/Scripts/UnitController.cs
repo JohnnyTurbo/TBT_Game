@@ -52,7 +52,7 @@ public class UnitController : MonoBehaviour
             else
             {
                 //Show Actions Menu
-                //Maybe display message about no available actions
+                gameController.ShowMessage("Unit out of Moves!", 1f);
                 gameController.curState = GameState.PlayerSelectAction;
             }
             gameController.ShowActionsMenu();
@@ -74,6 +74,7 @@ public class UnitController : MonoBehaviour
         gameObject.GetComponent<MeshRenderer>().material = startingMat;
         gameController.HideActionsMenu();
         gameController.HideUnitStats();
+        gameController.HideMessage();
 
         if (isMoving)
         {
@@ -121,7 +122,8 @@ public class UnitController : MonoBehaviour
         }
         if(numEnemiesInRange == 0)
         {
-            Debug.Log("No enemies in range");
+            //Debug.Log("No enemies in range");
+            gameController.ShowMessage("No Enemies in Range!", 1.5f);
         }
     }
 

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+public enum GameState { PlayerSelectTile, PlayerSelectAction, PlayerMoveUnit, PlayerAttackUnit, EnemyTurn };
+
 public class GameController : MonoBehaviour {
 
     public static GameController instance;
@@ -23,11 +25,14 @@ public class GameController : MonoBehaviour {
     public List<UnitController>[] unitsInGame;
     public GameObject cursor;
 
-    GameObject actionCanvas, statCanvas, moveUnitCanvas, attackUnitCanvas, debugCanvas;
-    Text numUnitsText, attackText, defenseText, movementText, rangeText, debugStateText;
+    public static readonly Vector3 farAway = new Vector3(1000f, 1000f, 1000f);
+
+    GameObject actionCanvas, statCanvas, messageCanvas, debugCanvas;
+    Text numUnitsText, attackText, defenseText, movementText, rangeText, messageText, debugStateText;
     Button moveConfirmButton, moveActionButton, attackActionButton;
-    TileController tempTile = null;
+    TileController prevHoveredTile = null;
     List<TileController> availableTiles;
+    Coroutine messageCoro;
 
     void Awake()
     {
@@ -46,8 +51,7 @@ public class GameController : MonoBehaviour {
         //Find the canvases on the UI GameObject
         actionCanvas = uiObject.transform.Find("ActionCanvas").gameObject;
         statCanvas = uiObject.transform.Find("StatCanvas").gameObject;
-        moveUnitCanvas = uiObject.transform.Find("MoveUnitCanvas").gameObject;
-        attackUnitCanvas = uiObject.transform.Find("AttackUnitCanvas").gameObject;
+        messageCanvas = uiObject.transform.Find("MessageCanvas").gameObject;
         debugCanvas = uiObject.transform.Find("DebugCanvas").gameObject;
 
         //Find the UI components on the actionCanvas
@@ -61,19 +65,18 @@ public class GameController : MonoBehaviour {
         movementText = statCanvas.transform.Find("MovementText").GetComponent<Text>();
         rangeText = statCanvas.transform.Find("RangeText").GetComponent<Text>();
 
-        //Find the UI components on the moveUnitCanvas
-        moveConfirmButton = moveUnitCanvas.transform.Find("ConfirmButton").GetComponent<Button>();
+        //Find the UI components on the messageCanvas
+        messageText = messageCanvas.transform.Find("MessageText").GetComponent<Text>();
 
         //Find the UI componenets on the debugStateCanvas
         debugStateText = debugCanvas.transform.Find("DebugStateText").GetComponent<Text>();
 
         actionCanvas.SetActive(false);
         statCanvas.SetActive(false);
-        moveUnitCanvas.SetActive(false);
-        attackUnitCanvas.SetActive(false);
+        messageCanvas.SetActive(false);
         InitializeMap();
         SpawnUnits();
-        cursor = Instantiate(cursor, new Vector3(1000, 1000, 1000), Quaternion.identity);
+        cursor = Instantiate(cursor, farAway, Quaternion.identity);
         curState = GameState.PlayerSelectTile;
     }
 
@@ -150,6 +153,8 @@ public class GameController : MonoBehaviour {
                         {
                             //Unit out of actions
                             curUnit.UnhighlightTiles();
+                            curState = GameState.PlayerSelectAction;
+                            ShowMessage("Unit out of Moves!", 1f);
                         }
                     }
                 }
@@ -189,6 +194,8 @@ public class GameController : MonoBehaviour {
                                 {
                                     //Unit out of actions
                                     curUnit.UnhighlightTiles();
+                                    curState = GameState.PlayerSelectAction;
+                                    ShowMessage("Unit out of Moves!", 1f);
                                 }
                             }
                             else
@@ -202,28 +209,6 @@ public class GameController : MonoBehaviour {
                         }
                     }
                 }
-
-                //Old Implementation
-                /*
-                if (Input.GetButtonDown("Fire1") && curHoveredTile != null)
-                {
-                    if (curHoveredTile.AttemptUnitAttack(curUnit))
-                    {
-                        //Attack Succeeded
-                        Debug.Log("Attack Succeeded");
-                        curUnit.canAttack = false;
-                        curUnit.isAttacking = false;
-                        HideAttackMenu();
-                        ShowActionsMenu();
-                        curState = GameState.PlayerSelectAction;
-                    }
-                    else
-                    {
-                        //Attack Failed
-                        Debug.Log("Attack Failed");
-                    }
-                }
-                */
                 break;
 
             case GameState.EnemyTurn:
@@ -231,6 +216,7 @@ public class GameController : MonoBehaviour {
                 break;
 
             default:
+                Debug.LogError("Game is in an invalid state!");
                 debugStateText.text = "GameState: ERROR";
                 return;
         }
@@ -311,16 +297,25 @@ public class GameController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Called by the OnClick() Event attached to the Move Button on the Action Canvas
+    /// </summary>
     public void MoveButtonSelect()
     {
         curUnit.MoveUnit();
     }
 
+    /// <summary>
+    /// Called by the OnClick() event attached to the Attack Button on the Action Canvas
+    /// </summary>
     public void AttackButtonSelect()
     {
         curUnit.AttackUnit();
     }
 
+    /// <summary>
+    /// Called by the OnClick() event attached to the Cancel Button on the Action Canvas
+    /// </summary>
     public void CancelButtonSelect()
     {
         curUnit.OnUnitDeselect();
@@ -328,32 +323,9 @@ public class GameController : MonoBehaviour {
         HideUnitStats();
     }
 
-    public void ConfirmMoveButtonSelect()
-    {
-        curUnit.canMove = false;
-        curSelectedTile.unitOnTile = curUnit.gameObject;
-        tempTile.unitOnTile = curUnit.gameObject;
-        curUnit.curCoords = tempTile.curCoords;
-        tempTile = null;
-        curSelectedTile.unitOnTile = null;
-        HideMoveMenu();
-        ShowActionsMenu();
-        curState = GameState.PlayerSelectAction;
-        curUnit.isMoving = false;
-    }
-
-    public void CancelMoveButtonSelect()
-    {
-        CancelMove();
-        ShowActionsMenu();
-        curState = GameState.PlayerSelectAction;
-    }
-
-    public void CancelMove() {
-        HideMoveMenu();
-        curUnit.isMoving = false;
-    }
-
+    /// <summary>
+    /// Called by the OnClick() event attached to the End Turn Button on the General Action Canvas
+    /// </summary>
     public void EndTurnButtonSelect()
     {
         if(curUnit != null)
@@ -368,19 +340,10 @@ public class GameController : MonoBehaviour {
         }
     }
 
-    public void CancelAttackButtonSelect()
-    {
-        CancelAttack();
-        ShowActionsMenu();
-        curState = GameState.PlayerSelectAction;
-    }
-
-    public void CancelAttack()
-    {
-        HideAttackMenu();
-        curUnit.isAttacking = false;
-    }
-
+    /// <summary>
+    /// Displays the statistics for the selected unit
+    /// </summary>
+    /// <param name="selectedUnit">Unit that you want to show stats for</param>
     public void ShowUnitStats(UnitController selectedUnit)
     {
         statCanvas.SetActive(true);
@@ -391,11 +354,17 @@ public class GameController : MonoBehaviour {
         rangeText.text = "Range: " + selectedUnit.AttackRange;
     }
 
+    /// <summary>
+    /// Hides the statistics UI elements
+    /// </summary>
     public void HideUnitStats()
     {
         statCanvas.SetActive(false);
     }
 
+    /// <summary>
+    /// Displays the Actions menu
+    /// </summary>
     public void ShowActionsMenu()
     {
         actionCanvas.SetActive(true);
@@ -408,28 +377,77 @@ public class GameController : MonoBehaviour {
         actionCanvas.SetActive(false);
     }
 
-    public void ShowMoveMenu()
+    public void PointerEnterButton()
     {
-        moveUnitCanvas.SetActive(true);
+        cursor.transform.position = farAway;
+        prevHoveredTile = curHoveredTile;
+        curHoveredTile = null;
     }
 
-    public void HideMoveMenu()
+    public void PointerExitButton()
     {
-        moveUnitCanvas.SetActive(false);
+        curHoveredTile = prevHoveredTile;
+        cursor.transform.position = curHoveredTile.transform.position + new Vector3(0f, 0.00001f, 0f);
     }
 
-    public void ShowAttackMenu()
+    public void ShowMessage(string newMessage, float messageTime)
     {
-        attackUnitCanvas.SetActive(true);
+        messageCoro = StartCoroutine(ShowMessageCoro(newMessage, messageTime));
     }
 
-    public void HideAttackMenu()
+    IEnumerator ShowMessageCoro(string newMessage, float messageDuration)
     {
-        attackUnitCanvas.SetActive(false);
+        //Debug.Log("ShowMessage()");
+
+        float startTime;
+        float endTime;
+        float fadeInDuration = 0.1f;
+        float fadeOutDuration = 0.25f;
+
+        messageCanvas.SetActive(true);
+        messageText.text = newMessage;
+
+        startTime = Time.time;
+        endTime = startTime + fadeInDuration;
+
+        while (Time.time <= endTime)
+        {
+            float colorAlpha = (Time.time - startTime) / fadeOutDuration;
+            ChangeMessageTextAlpha(colorAlpha);
+            yield return null;
+        }
+        ChangeMessageTextAlpha(1);
+
+        yield return new WaitForSeconds(messageDuration);
+
+        //Debug.Log("Begin Fade");
+        startTime = Time.time;
+        endTime = startTime + fadeOutDuration;
+        while(Time.time <= endTime)
+        {
+            float colorAlpha = (endTime - Time.time) / fadeOutDuration;
+            ChangeMessageTextAlpha(colorAlpha);
+            yield return null;
+        }
+        HideMessage();
+    }
+
+    void ChangeMessageTextAlpha(float newAlphaValue)
+    {
+        messageText.color = new Color(messageText.color.r, messageText.color.g, messageText.color.b, newAlphaValue);
+    }
+
+    public void HideMessage()
+    {
+        //Debug.Log("HideMessage()");
+        if (messageCoro != null)
+        {
+            StopCoroutine(messageCoro);
+        }
+        //messageText.color = new Color(messageText.color.r, messageText.color.g, messageText.color.b, 1);
+        messageCanvas.SetActive(false);
     }
 }
-
-public enum GameState {PlayerSelectTile, PlayerSelectAction, PlayerMoveUnit, PlayerAttackUnit, EnemyTurn};
 
 [System.Serializable]
 public struct IntVector2
