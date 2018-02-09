@@ -1,13 +1,16 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class UnitController : MonoBehaviour
+public class UnitController : NetworkBehaviour
 {
     public int numUnits, attackStat, defenseStat, movementRange, AttackRange;
     public bool canMove, canAttack;
     public bool isMoving, isAttacking;
     public IntVector2 curCoords;
+
+    [SyncVar]
     public int unitTeamID;
     public Material p1SelectMat, p2SelectMat;
 
@@ -30,51 +33,51 @@ public class UnitController : MonoBehaviour
     /// <summary>
     /// Called when the unit is selected.
     /// </summary>
-    public void OnUnitSelect()
+    public void OnUnitSelect(PlayerNetworkObjectController pnoc)
     {
         //Show Menu
         //Debug.Log("OnUnitSelect()");
-        if (gameController.playerTeamID == unitTeamID)
+        if (pnoc.playerTeamID == unitTeamID)
         {
             gameObject.GetComponent<MeshRenderer>().material = p1SelectMat;
             //gameController.curState = GameState.PlayerSelectAction;
             if (canMove)
             {
                 //Select Move Action
-                MoveUnit();
+                MoveUnit(pnoc);
             }
             else if (canAttack)
             {
                 //Select Attack Action
                 //gameController.curState = GameState.PlayerAttackUnit;
-                AttackUnit();
+                AttackUnit(pnoc);
             }
             else
             {
                 //Show Actions Menu
-                gameController.ShowMessage("Unit out of Moves!", 1f);
-                gameController.curState = GameState.PlayerSelectAction;
+                pnoc.ShowMessage("Unit out of Moves!", 1f);
+                pnoc.curState = GameState.PlayerSelectAction;
             }
-            gameController.ShowActionsMenu();
+            pnoc.ShowActionsMenu();
         }
         else
         {
             gameObject.GetComponent<MeshRenderer>().material = p2SelectMat;
-            gameController.curState = GameState.PlayerSelectTile;
+            pnoc.curState = GameState.PlayerSelectTile;
         }
-        gameController.ShowUnitStats(this);
+        pnoc.ShowUnitStats(this);
 
     }
 
-    public void OnUnitDeselect()
+    public void OnUnitDeselect(PlayerNetworkObjectController pnoc)
     {
         //Hide Menu
         //Debug.Log("OnUnitDeselect()");
         UnhighlightTiles();
         gameObject.GetComponent<MeshRenderer>().material = startingMat;
-        gameController.HideActionsMenu();
-        gameController.HideUnitStats();
-        gameController.HideMessage();
+        pnoc.HideActionsMenu();
+        pnoc.HideUnitStats();
+        pnoc.HideMessage();
 
         if (isMoving)
         {
@@ -85,17 +88,17 @@ public class UnitController : MonoBehaviour
             isAttacking = false;
         }
 
-        gameController.curUnit = null;
-        gameController.curState = GameState.PlayerSelectTile;
+        pnoc.curUnit = null;
+        pnoc.curState = GameState.PlayerSelectTile;
     }
 
-    public void MoveUnit()
+    public void MoveUnit(PlayerNetworkObjectController pnoc)
     {
         UnhighlightTiles();
         isMoving = true;
-        gameController.curState = GameState.PlayerMoveUnit;
+        pnoc.curState = GameState.PlayerMoveUnit;
         availTiles = new List<TileController>();
-        availTiles = gameController.FindAvailableTiles(curCoords, movementRange);
+        //availTiles = pnoc.FindAvailableTiles(curCoords, movementRange);
         //Debug.Log("There are " + availTiles.Count + " tiles available to move on.");
         foreach (TileController curTile in availTiles)
         {
@@ -103,19 +106,19 @@ public class UnitController : MonoBehaviour
         }
     }
 
-    public void AttackUnit()
+    public void AttackUnit(PlayerNetworkObjectController pnoc)
     {
         UnhighlightTiles();
         isAttacking = true;
-        gameController.curState = GameState.PlayerAttackUnit;
+        pnoc.curState = GameState.PlayerAttackUnit;
         availTiles = new List<TileController>();
-        availTiles = gameController.FindAvailableTiles(curCoords, AttackRange);
+        //availTiles = pnoc.FindAvailableTiles(curCoords, AttackRange);
         int numEnemiesInRange = 0;
         foreach(TileController curTile in availTiles)
         {
             curTile.ChangeTileMaterial(curTile.attackMat);
             if(curTile.unitOnTile != null && curTile.unitOnTile.GetComponent<UnitController>().unitTeamID 
-                != gameController.playerTeamID)
+                != pnoc.playerTeamID)
             {
                 numEnemiesInRange++;
             }
@@ -123,7 +126,7 @@ public class UnitController : MonoBehaviour
         if(numEnemiesInRange == 0)
         {
             //Debug.Log("No enemies in range");
-            gameController.ShowMessage("No Enemies in Range!", 1.5f);
+            pnoc.ShowMessage("No Enemies in Range!", 1.5f);
         }
     }
 

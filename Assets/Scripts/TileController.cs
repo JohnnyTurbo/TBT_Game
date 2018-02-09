@@ -2,16 +2,20 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Networking;
 
-public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler {
+public class TileController : NetworkBehaviour, IPointerEnterHandler, IPointerExitHandler {
 
     public bool isOccupied = false;
     //public int xPos, yPos;
     public IntVector2 curCoords;
     public Material startingMat, hoverMat, movementMat, attackMat;
+
+    [SyncVar]
     public GameObject unitOnTile;
 
     GameController gameController;
+    PlayerNetworkObjectController myPnoc;
 
     void Awake()
     {
@@ -20,7 +24,12 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
 
     void Start()
     {
+
         startingMat = gameObject.GetComponent<MeshRenderer>().material;
+
+        myPnoc = ClientScene.localPlayers[0].gameObject.GetComponent<PlayerNetworkObjectController>();
+        //Debug.Log(myPnoc.GetInstanceID());
+        //myPnoc.ShowMessage("pnocID: " + myPnoc.GetInstanceID(), 5);
     }
 
     public void OnPointerEnter(PointerEventData pointerEventData)
@@ -37,8 +46,8 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     void HoverTileEnter()
     {
         //ChangeTileMaterial(hoverMat);
-        gameController.curHoveredTile = this;
-        gameController.cursor.transform.position = gameObject.transform.position + new Vector3 (0f, 0.00001f, 0f);
+        myPnoc.curHoveredTile = this;
+        myPnoc.cursor.transform.position = gameObject.transform.position + new Vector3 (0f, 0.00001f, 0f);
     }
 
     void HoverTileExit()
@@ -52,25 +61,26 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
         gameObject.GetComponent<MeshRenderer>().material = newMat;
     }
 
-    public void OnTileSelect()
+    public void OnTileSelect()//PlayerNetworkObjectController pnoc)
     {
-        gameController.curSelectedTile = this;
 
-        if (gameController.curUnit != null)
+        myPnoc.curSelectedTile = this;
+
+        if (myPnoc.curUnit != null)
         {
             //Debug.Log("Deselecting GO with ID: " + gameController.curUnit.GetInstanceID());
 
-            gameController.curUnit.OnUnitDeselect();
-            gameController.curUnit = null;
+            myPnoc.curUnit.OnUnitDeselect(myPnoc);
+            myPnoc.curUnit = null;
         }
 
         if(unitOnTile != null)
         {
-            gameController.curUnit = unitOnTile.GetComponent<UnitController>();
-            if(gameController.curUnit != null)
+            myPnoc.curUnit = unitOnTile.GetComponent<UnitController>();
+            if(myPnoc.curUnit != null)
             {
                 //Unit on tile has a UnitController script
-                gameController.curUnit.OnUnitSelect();
+                myPnoc.curUnit.OnUnitSelect(myPnoc);
             }
 
             else
@@ -121,13 +131,13 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     {
         return (Mathf.Abs(curCoords.x - otherCoords.x) + Mathf.Abs(curCoords.y - otherCoords.y));
     }
-    
 
-    //Old implementation. Delete Later
-    /*
-    public int CalculateDist(int otherXPos, int otherYpos)
+    public override void OnStartLocalPlayer()
     {
-        return (Mathf.Abs(xPos - otherXPos) + Mathf.Abs(yPos - otherYpos));
+        Debug.Log("OnStartLocalPlayer()");
+        base.OnStartLocalPlayer();
+        myPnoc = ClientScene.localPlayers[0].gameObject.GetComponent<PlayerNetworkObjectController>();
+
     }
-    */
+
 }

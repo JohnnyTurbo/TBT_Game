@@ -23,6 +23,8 @@ GameObject:
   - component: {fileID: 64376503316328756}
   - component: {fileID: 23529262507552878}
   - component: {fileID: 114291165529106244}
+  - component: {fileID: 114840567375075824}
+  - component: {fileID: 114007806715333454}
   m_Layer: 0
   m_Name: WhiteTile
   m_TagString: Tile
@@ -98,6 +100,27 @@ MeshCollider:
   m_CookingOptions: 14
   m_SkinWidth: 0.01
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &114007806715333454
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1966430063637482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1768714887, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_TransformSyncMode: 1
+  m_SendInterval: 0.1
+  m_SyncRotationAxis: 7
+  m_RotationSyncCompression: 0
+  m_SyncSpin: 0
+  m_MovementTheshold: 0.001
+  m_VelocityThreshold: 0.0001
+  m_SnapThreshold: 5
+  m_InterpolateRotation: 1
+  m_InterpolateMovement: 1
 --- !u!114 &114291165529106244
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -118,3 +141,35 @@ MonoBehaviour:
   movementMat: {fileID: 2100000, guid: 3b716482af9de0c46baa1210ec1a6144, type: 2}
   attackMat: {fileID: 2100000, guid: db315e464a3f96c4e809e4716ca94a8b, type: 2}
   unitOnTile: {fileID: 0}
+--- !u!114 &114840567375075824
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1966430063637482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 372142912, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SceneId:
+    m_Value: 0
+  m_AssetId:
+    i0: 142
+    i1: 14
+    i2: 170
+    i3: 199
+    i4: 136
+    i5: 114
+    i6: 224
+    i7: 196
+    i8: 121
+    i9: 111
+    i10: 88
+    i11: 56
+    i12: 209
+    i13: 176
+    i14: 29
+    i15: 175
+  m_ServerOnly: 0
+  m_LocalPlayerAuthority: 1
