@@ -1,4 +1,5 @@
-﻿using System;
+﻿/*
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -409,4 +410,4 @@ public class PlayerNetworkObjectController : NetworkBehaviour {
         playerTeamID = 0;// Convert.ToInt32(debugPlayerID.text);
     }
     */
-}
+//}

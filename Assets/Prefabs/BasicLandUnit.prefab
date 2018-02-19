@@ -23,8 +23,6 @@ GameObject:
   - component: {fileID: 65028922024289328}
   - component: {fileID: 23979859384038650}
   - component: {fileID: 114683680403271262}
-  - component: {fileID: 114938769498027810}
-  - component: {fileID: 114886254634066436}
   m_Layer: 8
   m_Name: BasicLandUnit
   m_TagString: Untagged
@@ -122,58 +120,6 @@ MonoBehaviour:
     x: 0
     y: 0
   unitTeamID: 0
+  unitIndex: 0
   p1SelectMat: {fileID: 2100000, guid: 7c5578a050ef80549ac6d18add670995, type: 2}
   p2SelectMat: {fileID: 2100000, guid: 9f202a1e50e2d38429003151980f25cc, type: 2}
---- !u!114 &114886254634066436
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1616124348437650}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -1768714887, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_TransformSyncMode: 1
-  m_SendInterval: 0.1
-  m_SyncRotationAxis: 7
-  m_RotationSyncCompression: 0
-  m_SyncSpin: 0
-  m_MovementTheshold: 0.001
-  m_VelocityThreshold: 0.0001
-  m_SnapThreshold: 5
-  m_InterpolateRotation: 1
-  m_InterpolateMovement: 1
---- !u!114 &114938769498027810
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1616124348437650}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 372142912, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_SceneId:
-    m_Value: 0
-  m_AssetId:
-    i0: 186
-    i1: 47
-    i2: 70
-    i3: 242
-    i4: 123
-    i5: 169
-    i6: 43
-    i7: 132
-    i8: 171
-    i9: 123
-    i10: 212
-    i11: 10
-    i12: 186
-    i13: 180
-    i14: 126
-    i15: 73
-  m_ServerOnly: 0
-  m_LocalPlayerAuthority: 0
