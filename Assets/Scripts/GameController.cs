@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public enum GameState { PlayerSelectTile, PlayerSelectAction, PlayerMoveUnit, PlayerAttackUnit, EnemyTurn };
+public enum GameState { PlayerSelectTile, PlayerSelectAction, PlayerMoveUnit, PlayerAttackUnit, EnemyTurn, GameOver };
 
 public class GameController : MonoBehaviour {
 
@@ -84,6 +84,7 @@ public class GameController : MonoBehaviour {
         {
             playerTeamID = 0;
             nextPlayerID = 1;
+            indexOfLastCommand+=2;
             InitializeMap(true);
         }
         else
@@ -166,6 +167,8 @@ public class GameController : MonoBehaviour {
                         
                         thisTurnCMDs += ("&mvt|" + curUnit.unitIndex + "|" + curUnit.curCoords.ToLightString());
 
+                        indexOfLastCommand++;
+
                         ShowActionsMenu();
                         if (curUnit.canAttack)
                         {
@@ -190,7 +193,7 @@ public class GameController : MonoBehaviour {
                 {
                     if(curHoveredTile == null)
                     {
-                        Debug.Log("curState is PlayerAttackUnit, Fire1 down, curHoveredTile is null");
+                        //Debug.Log("curState is PlayerAttackUnit, Fire1 down, curHoveredTile is null");
                     }
                     else if(curHoveredTile.unitOnTile != null)
                     {
@@ -211,8 +214,27 @@ public class GameController : MonoBehaviour {
 
                                 thisTurnCMDs += ("&atk|" + indexOfOther + "|" + newHealthOfOther);
 
+                                indexOfLastCommand++;
+
                                 curUnit.canAttack = false;
                                 curUnit.isAttacking = false;
+
+                                Debug.Log("Num of all units: " + unitsInGame[numTeams].Count);
+
+                                if (newHealthOfOther <= 0 && unitsInGame[nextPlayerID].Count <= 0)
+                                {
+                                    //Debug.Log(unitsInGame[nextPlayerID].Count);
+                                    curUnit.OnUnitDeselect();
+                                    ShowMessage("YOU WON!", 500);
+                                    thisTurnCMDs += ("&end");
+                                    indexOfLastCommand++;
+                                    Debug.Log("thisTurnCMDs: " + thisTurnCMDs);
+                                    curState = GameState.GameOver;
+                                    //NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID);
+                                    StartCoroutine(WaitForMyTurn());
+                                    break;
+                                }
+
                                 ShowActionsMenu();
                                 if (curUnit.canMove)
                                 {
@@ -242,6 +264,10 @@ public class GameController : MonoBehaviour {
 
             case GameState.EnemyTurn:
                 debugStateText.text = "GameState: EnemyTurn";
+                break;
+
+            case GameState.GameOver:
+                debugStateText.text = "GameState: GameOver";
                 break;
 
             default:
@@ -299,12 +325,12 @@ public class GameController : MonoBehaviour {
             {
                 //Message
                 case "msg":
-                    Debug.Log("Game Start");
+                    //Debug.Log("Game Start");
                     break;
 
                 //Grid Size
                 case "grd":
-                    Debug.Log("Setting grid size");
+                    //Debug.Log("Setting grid size");
                     cmdParts = cmdToProc[1].Split(',');
                     gridSizeX = int.Parse(cmdParts[0]);
                     gridSizeY = int.Parse(cmdParts[1]);
@@ -326,15 +352,21 @@ public class GameController : MonoBehaviour {
                     int newHealth = int.Parse(cmdToProc[2]);
                     UnitController affectedUnit = unitsInGame[numTeams][unitID];
 
+                    Debug.Log("atk, numTeams: " + numTeams + ", unitID: " + unitID);
+
                     if(newHealth <= 0)
                     {
-                        Debug.Log("New Health is less than or equal to zero!");
+                        //Debug.Log("New Health is less than or equal to zero!");
                         Destroy(affectedUnit.gameObject);
                     }
                     else
                     {
                         affectedUnit.numUnits = newHealth;
                     }
+                    break;
+
+                case "end":
+                    ShowMessage("YOU LOST!", 500);
                     break;
 
                 default:
@@ -353,7 +385,7 @@ public class GameController : MonoBehaviour {
 
         if (isCreator)
         {
-            Debug.Log("isCreator == true");
+            //Debug.Log("isCreator == true");
             gridSize.x = gridSizeX;
             gridSize.y = gridSizeY;
 
@@ -361,7 +393,7 @@ public class GameController : MonoBehaviour {
         }
         else
         {
-            Debug.Log("isCreator == false");
+            //Debug.Log("isCreator == false");
             //receive grid size from server
             gridSize.x = gridSizeX;
             gridSize.y = gridSizeY;
@@ -389,7 +421,7 @@ public class GameController : MonoBehaviour {
 
     void SpawnUnits()
     {
-        Debug.Log("Spawning Units");
+        //Debug.Log("Spawning Units");
         int unitIndex = 0;
 
         for (int i = 0; i < numPlayerUnits; i++)
@@ -486,20 +518,27 @@ public class GameController : MonoBehaviour {
             curUnit.OnUnitDeselect();
         }
 
-        foreach(UnitController p1unit in unitsInGame[0])
+        foreach(UnitController playerUnit in unitsInGame[playerTeamID])
         {
-            p1unit.canMove = true;
-            p1unit.canAttack = true;
+            playerUnit.canMove = true;
+            playerUnit.canAttack = true;
         }
         curState = GameState.EnemyTurn;
-        NetworkController.instance.SendStringToDB(thisTurnCMDs, nextPlayerID);
-        thisTurnCMDs = "";
+        
         StartCoroutine(WaitForMyTurn());
     }
 
     IEnumerator WaitForMyTurn()
     {
         int nextID = nextPlayerID;
+
+        //Debug.Log("MyID: " + playerTeamID + ", nextPlayerID: " + nextPlayerID);
+
+        //NetworkController.instance.SendStringToDB(thisTurnCMDs, nextPlayerID);
+        Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID));
+        thisTurnCMDs = "";
+
+        yield return sendCMD;
 
         while (nextID != playerTeamID) {
 
@@ -511,8 +550,15 @@ public class GameController : MonoBehaviour {
             yield return new WaitForSecondsRealtime(0.5f);
         }
 
-        Debug.Log("Your turn!");
-        curState = GameState.PlayerMoveUnit;
+        Debug.Log("Before GetCommands() lastCMDindex is: " + indexOfLastCommand);
+
+        Coroutine coro = StartCoroutine(GetCommands());
+
+        yield return coro;
+
+        //Debug.Log("Your turn!");
+        
+        curState = GameState.PlayerSelectTile;
 
     }
 

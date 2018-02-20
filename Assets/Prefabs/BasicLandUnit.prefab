@@ -108,10 +108,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   numUnits: 5
-  attackStat: 2
+  attackStat: 10
   defenseStat: 3
   movementRange: 3
-  AttackRange: 2
+  AttackRange: 4
   canMove: 0
   canAttack: 0
   isMoving: 0

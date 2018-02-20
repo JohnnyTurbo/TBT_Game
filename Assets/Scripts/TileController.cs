@@ -113,6 +113,7 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                 if (otherUnit.numUnits <= 0)
                 {
                     newHealth = 0;
+                    GameController.instance.unitsInGame[otherUnit.unitTeamID].Remove(otherUnit);
                     Destroy(unitOnTile);
                     unitOnTile = null;
                 }

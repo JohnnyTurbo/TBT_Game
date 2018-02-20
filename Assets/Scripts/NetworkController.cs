@@ -23,7 +23,7 @@ public class NetworkController : MonoBehaviour {
     }
     */
 
-    IEnumerator SendData(string dataToSend, int nextPlayerID)
+    public IEnumerator SendData(string dataToSend, int nextPlayerID)
     {
         WWWForm form = new WWWForm();
 
