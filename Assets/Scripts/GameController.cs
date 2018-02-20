@@ -12,6 +12,7 @@ public class GameController : MonoBehaviour {
     public int gridSizeX, gridSizeY;
     public GameObject whiteTilePrefab, blackTilePrefab;
     public GameObject basicLandUnitPrefab;
+    public GameObject[] unitTypes;
     public int numPlayerUnits, numEnemyUnits;
     public int tileSize;
     public const int numTeams = 2;
@@ -25,14 +26,16 @@ public class GameController : MonoBehaviour {
     public GameState curState;
     public List<UnitController>[] unitsInGame;
     public GameObject cursor;
+    public Material[] playerColors;
 
     public static readonly Vector3 farAway = new Vector3(1000f, 1000f, 1000f);
 
     int indexOfLastCommand = 0;
+    int unitIndex = 0;
     string thisTurnCMDs = "";
-    GameObject actionCanvas, statCanvas, messageCanvas, debugCanvas;
-    Text numUnitsText, attackText, defenseText, movementText, rangeText, messageText, debugStateText;
-    Button moveConfirmButton, moveActionButton, attackActionButton;
+    GameObject actionCanvas, statCanvas, messageCanvas, generalActionCanvas, debugCanvas;
+    Text numUnitsText, attackText, defenseText, movementText, rangeText, messageText, debugStateText, debugGameID;
+    Button moveConfirmButton, moveActionButton, attackActionButton, endTurnButton;
     TileController prevHoveredTile = null;
     List<TileController> availableTiles;
     Coroutine messageCoro;
@@ -55,6 +58,7 @@ public class GameController : MonoBehaviour {
         actionCanvas = uiObject.transform.Find("ActionCanvas").gameObject;
         statCanvas = uiObject.transform.Find("StatCanvas").gameObject;
         messageCanvas = uiObject.transform.Find("MessageCanvas").gameObject;
+        generalActionCanvas = uiObject.transform.Find("GeneralActionCanvas").gameObject;
         debugCanvas = uiObject.transform.Find("DebugCanvas").gameObject;
 
         //Find the UI components on the actionCanvas
@@ -71,8 +75,12 @@ public class GameController : MonoBehaviour {
         //Find the UI components on the messageCanvas
         messageText = messageCanvas.transform.Find("MessageText").GetComponent<Text>();
 
+        //Find the UI components on the generalActionCanvas
+        endTurnButton = generalActionCanvas.transform.Find("EndTurnButton").GetComponent<Button>();
+
         //Find the UI componenets on the debugStateCanvas
         debugStateText = debugCanvas.transform.Find("DebugStateText").GetComponent<Text>();
+        debugGameID = debugCanvas.transform.Find("DebugGameID").GetComponent<Text>();
 
         actionCanvas.SetActive(false);
         statCanvas.SetActive(false);
@@ -86,16 +94,21 @@ public class GameController : MonoBehaviour {
             nextPlayerID = 1;
             indexOfLastCommand+=2;
             InitializeMap(true);
+            curState = GameState.EnemyTurn;
+            StartCoroutine(WaitForMyTurn());
         }
         else
         {
             playerTeamID = 1;
             nextPlayerID = 0;
             StartCoroutine(GetCommands());
+            curState = GameState.PlayerSelectTile;
         }
 
+        debugGameID.text = "GameID: " + GlobalData.instance.gameID;
+
         cursor = Instantiate(cursor, farAway, Quaternion.identity);
-        curState = GameState.PlayerSelectTile;
+        
     }
 
     void Update()
@@ -264,10 +277,18 @@ public class GameController : MonoBehaviour {
 
             case GameState.EnemyTurn:
                 debugStateText.text = "GameState: EnemyTurn";
+                if (endTurnButton.IsInteractable())
+                {
+                    endTurnButton.interactable = false;
+                }
                 break;
 
             case GameState.GameOver:
                 debugStateText.text = "GameState: GameOver";
+                if (endTurnButton.IsInteractable())
+                {
+                    endTurnButton.interactable = false;
+                }
                 break;
 
             default:
@@ -337,6 +358,17 @@ public class GameController : MonoBehaviour {
                     InitializeMap(false);
                     break;
 
+                case "spn":
+                    int teamID = int.Parse(cmdToProc[1]);
+                    cmdParts = cmdToProc[2].Split(',');
+                    foreach (string unitTypeStr in cmdParts)
+                    {
+                        int unitType = int.Parse(unitTypeStr);
+                        SpawnUnit(unitType, teamID);
+                    }
+                    break;
+
+                //Movement
                 case "mvt":
                     //cmdParts = cmdToProc[1]
                     unitID = int.Parse(cmdToProc[1]);
@@ -347,6 +379,7 @@ public class GameController : MonoBehaviour {
                     mapGrid[newXLoc, newYLoc].AttemptUnitMove(unitToMove);
                     break;
 
+                //Attack
                 case "atk":
                     unitID = int.Parse(cmdToProc[1]);
                     int newHealth = int.Parse(cmdToProc[2]);
@@ -365,6 +398,7 @@ public class GameController : MonoBehaviour {
                     }
                     break;
 
+                //Game Over
                 case "end":
                     ShowMessage("YOU LOST!", 500);
                     break;
@@ -415,10 +449,22 @@ public class GameController : MonoBehaviour {
         }
         //Debug.Log(tileList.Count + " tiles on map");
 
-        SpawnUnits();
-
+        //SpawnUnits();
+        StartCoroutine(SendUnitsToServer());
     }
 
+    IEnumerator SendUnitsToServer()
+    {
+        //Debug.Log("Sending Units to Server");
+        string strToSend = "&spn|" + GlobalData.instance.playerID + "|" + GlobalData.instance.teamStr;
+        Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(strToSend, 1));
+        yield return sendCMD;
+        //Debug.Log("units sent to server: " + strToSend);
+        Coroutine getCmd = StartCoroutine(GetCommands());
+        yield return getCmd;
+    }
+
+    /*
     void SpawnUnits()
     {
         //Debug.Log("Spawning Units");
@@ -455,6 +501,29 @@ public class GameController : MonoBehaviour {
             unitIndex++;
         }
     }
+    */
+
+    void SpawnUnit(int unitType, int teamID /*, IntVector2 location*/)
+    {
+        int xLoc = unitIndex % 3;
+        int yLoc = (gridSizeY - 1) * teamID;
+
+        Vector3 newUnitLoc = new Vector3((xLoc * tileSize), 0, (yLoc * tileSize));
+
+        GameObject newUnit = Instantiate(unitTypes[unitType], newUnitLoc, Quaternion.identity);
+
+        UnitController newUnitController = newUnit.GetComponent<UnitController>();
+        newUnitController.unitTeamID = teamID;
+        newUnitController.unitIndex = unitIndex;
+        newUnitController.curCoords = new IntVector2(xLoc, yLoc);
+        mapGrid[xLoc, yLoc].isOccupied = true;
+        mapGrid[xLoc, yLoc].unitOnTile = newUnit;
+        newUnit.GetComponent<MeshRenderer>().material = playerColors[teamID];
+        unitsInGame[teamID].Add(newUnitController);
+        unitsInGame[numTeams].Add(newUnitController);
+        unitIndex++;
+    }
+
 
     public List<TileController> FindAvailableTiles(IntVector2 startLoc, int maxDist)
     {

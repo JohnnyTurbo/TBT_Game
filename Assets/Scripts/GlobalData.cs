@@ -8,6 +8,7 @@ public class GlobalData : MonoBehaviour {
 
     public int playerID;
     public int gameID;
+    public string teamStr;
 
     void Awake()
     {

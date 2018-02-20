@@ -14,7 +14,7 @@ public class UnitController : MonoBehaviour
 
     GameController gameController;
     List<TileController> availTiles;
-    Material startingMat;
+    public Material startingMat;
 
     void Awake()
     {

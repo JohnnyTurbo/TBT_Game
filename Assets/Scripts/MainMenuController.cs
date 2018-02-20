@@ -6,8 +6,13 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuController : MonoBehaviour {
 
-    public GameObject mainMenuCanvas;
+    public GameObject mainMenuCanvas, selectPlayerCanvas;
+    public Sprite[] athletes;
+    public Image[] team;
+    public Button confirmButton;
 
+    int numPlayersOnTeam = 0;
+    string teamStr;
     InputField gameIDinputField;
     Text errorText;
 
@@ -16,6 +21,8 @@ public class MainMenuController : MonoBehaviour {
         gameIDinputField = mainMenuCanvas.transform.Find("GameIDInputField").GetComponent<InputField>();
         errorText = mainMenuCanvas.transform.Find("ErrorText").GetComponent<Text>();
         errorText.text = "";
+        confirmButton.interactable = false;
+        mainMenuCanvas.SetActive(false);
     }
 
     public void OnButtonCreateGame()
@@ -88,4 +95,47 @@ public class MainMenuController : MonoBehaviour {
         SceneManager.LoadScene("Scene2");
     }
 
+    public void OnPlayerSelect(int playerID)
+    {
+
+        if(numPlayersOnTeam >= 3)
+        {
+            return;
+        }
+
+        Sprite imgToUse = athletes[playerID];
+
+        team[numPlayersOnTeam].sprite = imgToUse;
+        numPlayersOnTeam++;
+
+        teamStr += playerID;
+
+        if(numPlayersOnTeam == 3)
+        {
+            confirmButton.interactable = true;
+        }
+        else
+        {
+            teamStr += ",";
+        }
+    }
+
+    public void OnConfirmButtonSelect()
+    {
+        //teamStr = "&spn|" + teamStr;
+        GlobalData.instance.teamStr = teamStr;
+        selectPlayerCanvas.SetActive(false);
+        mainMenuCanvas.SetActive(true);
+    }
+
+    public void OnClearButtonSelect()
+    {
+        foreach (Image i in team)
+        {
+            i.sprite = null;
+        }
+        confirmButton.interactable = false;
+        teamStr = "";
+        numPlayersOnTeam = 0;
+    }
 }
