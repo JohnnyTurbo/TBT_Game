@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class UnitController : MonoBehaviour
 {
-    public int numUnits, attackStat, defenseStat, movementRange, AttackRange;
+    public int unitHealth, attackStat, defenseStat, movementRange, AttackRange;
+    public string unitType;
     public bool canMove, canAttack;
     public bool isMoving, isAttacking;
     public IntVector2 curCoords;

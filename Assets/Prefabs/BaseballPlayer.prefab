@@ -107,11 +107,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4a377805a8dcb043946aed3e5e49986, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numUnits: 5
-  attackStat: 10
-  defenseStat: 3
-  movementRange: 3
+  unitHealth: 5
+  attackStat: 5
+  defenseStat: 2
+  movementRange: 2
   AttackRange: 4
+  unitType: Pitcher
   canMove: 0
   canAttack: 0
   isMoving: 0
@@ -123,3 +124,4 @@ MonoBehaviour:
   unitIndex: 0
   p1SelectMat: {fileID: 2100000, guid: 7c5578a050ef80549ac6d18add670995, type: 2}
   p2SelectMat: {fileID: 2100000, guid: 9f202a1e50e2d38429003151980f25cc, type: 2}
+  startingMat: {fileID: 0}

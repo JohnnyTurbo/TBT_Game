@@ -2803,6 +2803,7 @@ GameObject:
   - component: {fileID: 1863637954}
   - component: {fileID: 1863637956}
   - component: {fileID: 1863637955}
+  - component: {fileID: 1863637957}
   m_Layer: 5
   m_Name: YourTeamText
   m_TagString: Untagged
@@ -2867,6 +2868,20 @@ CanvasRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1863637953}
+--- !u!114 &1863637957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1863637953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -900027084, guid: f70555f144d8491a825f0804e09c671c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 1, g: 1, b: 1, a: 1}
+  m_EffectDistance: {x: 1.5, y: -1.5}
+  m_UseGraphicAlpha: 1
 --- !u!1001 &1940200251
 Prefab:
   m_ObjectHideFlags: 0

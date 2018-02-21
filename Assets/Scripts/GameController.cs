@@ -34,7 +34,8 @@ public class GameController : MonoBehaviour {
     int unitIndex = 0;
     string thisTurnCMDs = "";
     GameObject actionCanvas, statCanvas, messageCanvas, generalActionCanvas, debugCanvas;
-    Text numUnitsText, attackText, defenseText, movementText, rangeText, messageText, debugStateText, debugGameID;
+    Text numUnitsText, attackText, defenseText, movementText, rangeText, unitTypeText, messageText, debugStateText, debugGameID;
+    Text p1Label, p2Label;
     Button moveConfirmButton, moveActionButton, attackActionButton, endTurnButton;
     TileController prevHoveredTile = null;
     List<TileController> availableTiles;
@@ -71,12 +72,15 @@ public class GameController : MonoBehaviour {
         defenseText = statCanvas.transform.Find("DefenseText").GetComponent<Text>();
         movementText = statCanvas.transform.Find("MovementText").GetComponent<Text>();
         rangeText = statCanvas.transform.Find("RangeText").GetComponent<Text>();
+        unitTypeText = statCanvas.transform.Find("UnitTypeText").GetComponent<Text>();
 
         //Find the UI components on the messageCanvas
         messageText = messageCanvas.transform.Find("MessageText").GetComponent<Text>();
 
         //Find the UI components on the generalActionCanvas
         endTurnButton = generalActionCanvas.transform.Find("EndTurnButton").GetComponent<Button>();
+        p1Label = generalActionCanvas.transform.Find("Player1Label").GetComponent<Text>();
+        p2Label = generalActionCanvas.transform.Find("Player2Label").GetComponent<Text>();
 
         //Find the UI componenets on the debugStateCanvas
         debugStateText = debugCanvas.transform.Find("DebugStateText").GetComponent<Text>();
@@ -85,11 +89,15 @@ public class GameController : MonoBehaviour {
         actionCanvas.SetActive(false);
         statCanvas.SetActive(false);
         messageCanvas.SetActive(false);
+        p1Label.gameObject.SetActive(false);
+        p2Label.gameObject.SetActive(false);
+
         //InitializeMap(0 == GlobalData.instance.playerID);
         //SpawnUnits();
 
         if(GlobalData.instance.playerID == 0)
         {
+            p1Label.gameObject.SetActive(true);
             playerTeamID = 0;
             nextPlayerID = 1;
             indexOfLastCommand+=2;
@@ -99,6 +107,7 @@ public class GameController : MonoBehaviour {
         }
         else
         {
+            p2Label.gameObject.SetActive(true);
             playerTeamID = 1;
             nextPlayerID = 0;
             StartCoroutine(GetCommands());
@@ -232,7 +241,7 @@ public class GameController : MonoBehaviour {
                                 curUnit.canAttack = false;
                                 curUnit.isAttacking = false;
 
-                                Debug.Log("Num of all units: " + unitsInGame[numTeams].Count);
+                                //Debug.Log("Num of all units: " + unitsInGame[numTeams].Count);
 
                                 if (newHealthOfOther <= 0 && unitsInGame[nextPlayerID].Count <= 0)
                                 {
@@ -394,7 +403,7 @@ public class GameController : MonoBehaviour {
                     }
                     else
                     {
-                        affectedUnit.numUnits = newHealth;
+                        affectedUnit.unitHealth = newHealth;
                     }
                     break;
 
@@ -505,7 +514,7 @@ public class GameController : MonoBehaviour {
 
     void SpawnUnit(int unitType, int teamID /*, IntVector2 location*/)
     {
-        int xLoc = unitIndex % 3;
+        int xLoc = (unitIndex % 3) + 2;
         int yLoc = (gridSizeY - 1) * teamID;
 
         Vector3 newUnitLoc = new Vector3((xLoc * tileSize), 0, (yLoc * tileSize));
@@ -628,7 +637,7 @@ public class GameController : MonoBehaviour {
         //Debug.Log("Your turn!");
         
         curState = GameState.PlayerSelectTile;
-
+        endTurnButton.interactable = true;
     }
 
     /// <summary>
@@ -638,11 +647,12 @@ public class GameController : MonoBehaviour {
     public void ShowUnitStats(UnitController selectedUnit)
     {
         statCanvas.SetActive(true);
-        numUnitsText.text = "Units: " + selectedUnit.numUnits;
+        numUnitsText.text = "Health: " + selectedUnit.unitHealth;
         attackText.text = "Attack: " + selectedUnit.attackStat;
         defenseText.text = "Defense: " + selectedUnit.defenseStat;
         movementText.text = "Movement: " + selectedUnit.movementRange;
         rangeText.text = "Range: " + selectedUnit.AttackRange;
+        unitTypeText.text = "Type: " + selectedUnit.unitType;
     }
 
     /// <summary>

@@ -107,10 +107,20 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
 
             if (curUnit.AttackRange >= CalculateDist(curUnit.curCoords) && !curUnit.OnSameTeam(otherUnit))
             {
-                otherUnit.numUnits = Mathf.CeilToInt(((otherUnit.numUnits * otherUnit.defenseStat) - (curUnit.numUnits
-                                                    * curUnit.attackStat)) / (float)otherUnit.defenseStat);
-                newHealth = otherUnit.numUnits;
-                if (otherUnit.numUnits <= 0)
+                //otherUnit.unitHealth = Mathf.CeilToInt(((otherUnit.unitHealth * otherUnit.defenseStat) - (curUnit.unitHealth
+                //                                    * curUnit.attackStat)) / (float)otherUnit.defenseStat);
+
+                int damageAmt = curUnit.attackStat - otherUnit.defenseStat;
+                Debug.Log("DamageAmt: " + damageAmt);
+                if(damageAmt < 0)
+                {
+                    damageAmt = 0;
+                }
+
+                otherUnit.unitHealth -= damageAmt;
+
+                newHealth = otherUnit.unitHealth;
+                if (otherUnit.unitHealth <= 0)
                 {
                     newHealth = 0;
                     GameController.instance.unitsInGame[otherUnit.unitTeamID].Remove(otherUnit);
