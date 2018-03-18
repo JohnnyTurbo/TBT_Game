@@ -520,14 +520,48 @@ public class GameController : MonoBehaviour {
         Vector3 newUnitLoc = new Vector3((xLoc * tileSize), 0, (yLoc * tileSize));
 
         GameObject newUnit = Instantiate(unitTypes[unitType], newUnitLoc, Quaternion.identity);
+        string unitSpriteToLoad = "";
+        switch (unitType)
+        {
+            //Point Guard
+            case 0:
+                unitSpriteToLoad = "PointGuard";
+                break;
+            
+            //Lineman
+            case 1:
+                unitSpriteToLoad = "Lineman";
+                break;
+            
+            //Pitcher
+            case 2:
+                unitSpriteToLoad = "Pitcher";
+                break;
+            
+            //MMAMiddleweight
+            case 3:
+                unitSpriteToLoad = "MMAMiddleweight";
+                break;
+            
+            //Unknown
+            default:
+                Debug.LogError("Unknown unitType");
+                break;
+        }
 
+        unitSpriteToLoad += (teamID == 0) ? "Blue" : "Yellow";
+
+        Debug.Log("unitSpriteToLoad: " + unitSpriteToLoad);
+
+        SpriteRenderer unitSprite = newUnit.transform.Find("Sprite").GetComponent<SpriteRenderer>();
+        unitSprite.sprite = Resources.Load("PlayerSprites/" + unitSpriteToLoad, typeof (Sprite)) as Sprite;
         UnitController newUnitController = newUnit.GetComponent<UnitController>();
         newUnitController.unitTeamID = teamID;
         newUnitController.unitIndex = unitIndex;
         newUnitController.curCoords = new IntVector2(xLoc, yLoc);
         mapGrid[xLoc, yLoc].isOccupied = true;
         mapGrid[xLoc, yLoc].unitOnTile = newUnit;
-        newUnit.GetComponent<MeshRenderer>().material = playerColors[teamID];
+        //newUnit.GetComponent<MeshRenderer>().material = playerColors[teamID];
         unitsInGame[teamID].Add(newUnitController);
         unitsInGame[numTeams].Add(newUnitController);
         unitIndex++;

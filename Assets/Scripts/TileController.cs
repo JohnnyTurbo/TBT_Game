@@ -91,6 +91,17 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             unitOnTile = curUnit.gameObject;
             curUnit.curCoords = curCoords;
 
+            Vector3 cameraGroundPos = new Vector3(Camera.main.transform.position.x, 0, Camera.main.transform.position.z);
+
+            float newYAngle = Vector3.Angle((cameraGroundPos - curUnit.transform.position), Vector3.right);
+
+            newYAngle = newYAngle * ((curUnit.transform.position.z < cameraGroundPos.z) ?  -1 : 1);
+
+            Quaternion newRot = Quaternion.Euler(0, newYAngle, 0);
+
+            curUnit.transform.rotation = newRot;
+                       
+
             return true;
         }
         else

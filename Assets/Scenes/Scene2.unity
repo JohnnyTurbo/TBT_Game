@@ -1855,13 +1855,13 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 596463046}
-  m_LocalRotation: {x: 0.34363484, y: -0.617992, z: 0.34363437, w: 0.61799395}
-  m_LocalPosition: {x: 15.41, y: 10.81, z: 6.73}
+  m_LocalRotation: {x: 0.24184473, y: -0.66446304, z: 0.24184473, w: 0.66446304}
+  m_LocalPosition: {x: 15.32, y: 6.02, z: 6.49}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 58.152004, y: -90.00001, z: 0}
+  m_LocalEulerAnglesHint: {x: 40, y: -90, z: 0}
 --- !u!114 &596463051
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3075,7 +3075,7 @@ MonoBehaviour:
   curSelectedTile: {fileID: 0}
   uiObject: {fileID: 1874018203}
   curState: 0
-  cursor: {fileID: 1774496292042796, guid: 05e3b0489d85dd1488f212c1acd68bcd, type: 2}
+  cursor: {fileID: 1863766190078416, guid: e0ba4ec6b46b13440bc7ad4ffcb55e38, type: 2}
   playerColors:
   - {fileID: 2100000, guid: f61e3fb5fe6427045b75d4b21fe542f9, type: 2}
   - {fileID: 2100000, guid: 4ad59cde7193e9647bdfe7b865ea3a9b, type: 2}

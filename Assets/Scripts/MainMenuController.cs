@@ -13,6 +13,7 @@ public class MainMenuController : MonoBehaviour {
 
     int numPlayersOnTeam = 0;
     string teamStr;
+    Sprite SelectionCircleStartSpr;
     InputField gameIDinputField;
     Text errorText;
 
@@ -23,6 +24,7 @@ public class MainMenuController : MonoBehaviour {
         errorText.text = "";
         confirmButton.interactable = false;
         mainMenuCanvas.SetActive(false);
+        SelectionCircleStartSpr = team[0].sprite;
     }
 
     public void OnButtonCreateGame()
@@ -132,7 +134,7 @@ public class MainMenuController : MonoBehaviour {
     {
         foreach (Image i in team)
         {
-            i.sprite = null;
+            i.sprite = SelectionCircleStartSpr;
         }
         confirmButton.interactable = false;
         teamStr = "";

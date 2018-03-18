@@ -11,11 +11,11 @@ public class UnitController : MonoBehaviour
     public IntVector2 curCoords;
     public int unitTeamID;
     public int unitIndex;
-    public Material p1SelectMat, p2SelectMat;
+    //public Material p1SelectMat, p2SelectMat;
 
     GameController gameController;
     List<TileController> availTiles;
-    public Material startingMat;
+    //public Material startingMat;
 
     void Awake()
     {
@@ -24,7 +24,7 @@ public class UnitController : MonoBehaviour
 
     void Start()
     {
-        startingMat = gameObject.GetComponent<MeshRenderer>().material;
+        //startingMat = gameObject.GetComponent<MeshRenderer>().material;
         canAttack = true;
         canMove = true;
     }
@@ -41,7 +41,7 @@ public class UnitController : MonoBehaviour
         //Debug.Log("OnUnitSelect()");
         if (gameController.playerTeamID == unitTeamID)
         {
-            gameObject.GetComponent<MeshRenderer>().material = p1SelectMat;
+            //gameObject.GetComponent<MeshRenderer>().material = p1SelectMat;
             //gameController.curState = GameState.PlayerSelectAction;
             if (canMove)
             {
@@ -64,7 +64,7 @@ public class UnitController : MonoBehaviour
         }
         else
         {
-            gameObject.GetComponent<MeshRenderer>().material = p2SelectMat;
+            //gameObject.GetComponent<MeshRenderer>().material = p2SelectMat;
             gameController.curState = GameState.PlayerSelectTile;
         }
         gameController.ShowUnitStats(this);
@@ -76,7 +76,7 @@ public class UnitController : MonoBehaviour
         //Hide Menu
         //Debug.Log("OnUnitDeselect()");
         UnhighlightTiles();
-        gameObject.GetComponent<MeshRenderer>().material = startingMat;
+        //gameObject.GetComponent<MeshRenderer>().material = startingMat;
         gameController.HideActionsMenu();
         gameController.HideUnitStats();
         gameController.HideMessage();
