@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler {
 
@@ -91,16 +92,7 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
             unitOnTile = curUnit.gameObject;
             curUnit.curCoords = curCoords;
 
-            Vector3 cameraGroundPos = new Vector3(Camera.main.transform.position.x, 0, Camera.main.transform.position.z);
-
-            float newYAngle = Vector3.Angle((cameraGroundPos - curUnit.transform.position), Vector3.right);
-
-            newYAngle = newYAngle * ((curUnit.transform.position.z < cameraGroundPos.z) ?  -1 : 1);
-
-            Quaternion newRot = Quaternion.Euler(0, newYAngle, 0);
-
-            curUnit.transform.rotation = newRot;
-                       
+            curUnit.RotateUnitSprite();
 
             return true;
         }
@@ -128,6 +120,15 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                     damageAmt = 0;
                 }
 
+                
+                Vector3 dmgTextLoc = new Vector3(otherUnit.curCoords.x * 2f, 3, otherUnit.curCoords.y * 2f);
+
+                GameObject newDmgIcon = GameObject.Instantiate(GameController.instance.damageAmtTextPrefab, GameController.instance.WorldSpaceCanvas.transform);
+                newDmgIcon.transform.position = dmgTextLoc;
+                Debug.Log(dmgTextLoc.ToString());
+                newDmgIcon.GetComponent<Text>().text = "-" + damageAmt;
+                newDmgIcon.GetComponent<FaceCamera>().DestroyInTime(2.5f);
+                
                 otherUnit.unitHealth -= damageAmt;
 
                 newHealth = otherUnit.unitHealth;
@@ -137,6 +138,14 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                     GameController.instance.unitsInGame[otherUnit.unitTeamID].Remove(otherUnit);
                     Destroy(unitOnTile);
                     unitOnTile = null;
+
+                    Vector3 koTextLoc = new Vector3(otherUnit.curCoords.x * 2f, 1.5f, otherUnit.curCoords.y * 2f);
+
+                    GameObject newKOIcon = GameObject.Instantiate(GameController.instance.damageAmtTextPrefab, GameController.instance.WorldSpaceCanvas.transform);
+                    newKOIcon.transform.position = koTextLoc;
+                    Debug.Log(koTextLoc.ToString());
+                    newKOIcon.GetComponent<Text>().text = "K.O.";
+                    newKOIcon.GetComponent<FaceCamera>().DestroyInTime(2.5f);
                 }
                 return true;
             }
@@ -150,14 +159,4 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     {
         return (Mathf.Abs(curCoords.x - otherCoords.x) + Mathf.Abs(curCoords.y - otherCoords.y));
     }
-    
-
-
-    //Old implementation. Delete Later
-    /*
-    public int CalculateDist(int otherXPos, int otherYpos)
-    {
-        return (Mathf.Abs(xPos - otherXPos) + Mathf.Abs(yPos - otherYpos));
-    }
-    */
 }

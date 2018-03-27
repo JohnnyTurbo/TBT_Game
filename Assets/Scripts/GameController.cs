@@ -12,6 +12,8 @@ public class GameController : MonoBehaviour {
     public int gridSizeX, gridSizeY;
     public GameObject whiteTilePrefab, blackTilePrefab;
     public GameObject basicLandUnitPrefab;
+    public GameObject damageAmtTextPrefab;
+    public GameObject WorldSpaceCanvas;
     public GameObject[] unitTypes;
     public int numPlayerUnits, numEnemyUnits;
     public int tileSize;
@@ -27,11 +29,15 @@ public class GameController : MonoBehaviour {
     public List<UnitController>[] unitsInGame;
     public GameObject cursor;
     public Material[] playerColors;
+    public Vector3[] camPositions;
+    public Vector3[] camRotations;
 
     public static readonly Vector3 farAway = new Vector3(1000f, 1000f, 1000f);
 
     int indexOfLastCommand = 0;
     int unitIndex = 0;
+    int camPositionIndex = 1;
+    bool isCameraMoving = false;
     string thisTurnCMDs = "";
     GameObject actionCanvas, statCanvas, messageCanvas, generalActionCanvas, debugCanvas;
     Text numUnitsText, attackText, defenseText, movementText, rangeText, unitTypeText, messageText, debugStateText, debugGameID;
@@ -98,6 +104,7 @@ public class GameController : MonoBehaviour {
         if(GlobalData.instance.playerID == 0)
         {
             p1Label.gameObject.SetActive(true);
+            MoveCameraLeftButtonSelect(3.5f);
             playerTeamID = 0;
             nextPlayerID = 1;
             indexOfLastCommand+=2;
@@ -108,6 +115,7 @@ public class GameController : MonoBehaviour {
         else
         {
             p2Label.gameObject.SetActive(true);
+            MoveCameraRightButtonSelect(3.5f);
             playerTeamID = 1;
             nextPlayerID = 0;
             StartCoroutine(GetCommands());
@@ -233,6 +241,8 @@ public class GameController : MonoBehaviour {
                             {
                                 //Attack Success
                                 //NetworkController.instance.SendStringToDB("&atk|" + indexOfOther + "|" + newHealthOfOther);
+
+                                HideUnitStats();
 
                                 thisTurnCMDs += ("&atk|" + indexOfOther + "|" + newHealthOfOther);
 
@@ -551,13 +561,14 @@ public class GameController : MonoBehaviour {
 
         unitSpriteToLoad += (teamID == 0) ? "Blue" : "Yellow";
 
-        Debug.Log("unitSpriteToLoad: " + unitSpriteToLoad);
+        //Debug.Log("unitSpriteToLoad: " + unitSpriteToLoad);
 
         SpriteRenderer unitSprite = newUnit.transform.Find("Sprite").GetComponent<SpriteRenderer>();
         unitSprite.sprite = Resources.Load("PlayerSprites/" + unitSpriteToLoad, typeof (Sprite)) as Sprite;
         UnitController newUnitController = newUnit.GetComponent<UnitController>();
         newUnitController.unitTeamID = teamID;
         newUnitController.unitIndex = unitIndex;
+        newUnitController.RotateUnitSprite();
         newUnitController.curCoords = new IntVector2(xLoc, yLoc);
         mapGrid[xLoc, yLoc].isOccupied = true;
         mapGrid[xLoc, yLoc].unitOnTile = newUnit;
@@ -638,6 +649,77 @@ public class GameController : MonoBehaviour {
         curState = GameState.EnemyTurn;
         
         StartCoroutine(WaitForMyTurn());
+    }
+
+    public void MoveCameraLeftButtonSelect(float duration)
+    {
+        if(camPositionIndex <= 0 || isCameraMoving)
+        {
+            return;
+        }
+
+        camPositionIndex--;
+        isCameraMoving = true;
+        StartCoroutine(MoveCamera(duration));
+
+    }
+
+    public void MoveCameraRightButtonSelect(float duration)
+    {
+        if (camPositionIndex >= 2 || isCameraMoving)
+        {
+            return;
+        }
+
+        camPositionIndex++;
+        isCameraMoving = true;
+        StartCoroutine(MoveCamera(duration));
+    }
+
+    IEnumerator MoveCamera(float duration)
+    {
+
+        Vector3 camStartPos, camEndPos, newPos;
+        Quaternion camStartRot, camEndRot, newRot;
+        float startTime, endTime, percentComplete;
+
+        startTime = Time.time;
+        endTime = startTime + duration;
+        percentComplete = (Time.time - startTime) / duration;
+
+        camStartPos = Camera.main.transform.position;
+        camStartRot = Camera.main.transform.rotation;
+        camEndPos = camPositions[camPositionIndex];
+        camEndRot = Quaternion.Euler(camRotations[camPositionIndex]);
+
+        while(percentComplete < 1f) {
+
+            percentComplete = (Time.time - startTime) / duration;
+
+            float t = percentComplete * percentComplete * (3f - 2f * percentComplete);
+
+            newPos = Vector3.Lerp(camStartPos, camEndPos, t);
+            newRot = Quaternion.Slerp(camStartRot, camEndRot, t);
+
+            Camera.main.transform.position = newPos;
+            Camera.main.transform.rotation = newRot;
+            RotateAllUnits();
+            percentComplete = (Time.time - startTime) / duration;
+
+            yield return null;
+        }
+        isCameraMoving = false;
+    }
+
+    void RotateAllUnits()
+    {
+        foreach(UnitController curUC in unitsInGame[numTeams])
+        {
+            if (curUC != null)
+            {
+                curUC.RotateUnitSprite();
+            }
+        }
     }
 
     IEnumerator WaitForMyTurn()

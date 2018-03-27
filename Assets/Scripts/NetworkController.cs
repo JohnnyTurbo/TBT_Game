@@ -6,9 +6,16 @@ public class NetworkController : MonoBehaviour {
 
     public static NetworkController instance;
 
+    string serverAddress;
+
     void Awake()
     {
         instance = this;
+    }
+
+    void Start()
+    {
+        serverAddress = GlobalData.instance.serverAddress;
     }
 
 	public void SendStringToDB(string dataToSend, int nextPlayerID)
@@ -30,7 +37,8 @@ public class NetworkController : MonoBehaviour {
         form.AddField("newCmd", dataToSend);
         form.AddField("gID", GlobalData.instance.gameID);
         form.AddField("whoTurn", nextPlayerID);
-        WWW www = new WWW("http://localhost/sb/sendCmd.php", form);
+        //WWW www = new WWW("http://localhost/sb/sendCmd.php", form);
+        WWW www = new WWW("http://" + serverAddress + "/sb/sendCmd.php", form);
 
         yield return www;
 
@@ -51,7 +59,7 @@ public class NetworkController : MonoBehaviour {
 
         form.AddField("gID", GlobalData.instance.gameID);
 
-        WWW www = new WWW("http://localhost/sb/receiveCmd.php", form);
+        WWW www = new WWW("http://" + serverAddress + "/sb/receiveCmd.php", form);
 
         yield return www;
 
@@ -72,7 +80,7 @@ public class NetworkController : MonoBehaviour {
 
         form.AddField("gID", GlobalData.instance.gameID);
 
-        WWW www = new WWW("http://localhost/sb/receiveTurn.php", form);
+        WWW www = new WWW("http://" + serverAddress + "/sb/receiveTurn.php", form);
 
         yield return www;
 

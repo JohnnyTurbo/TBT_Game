@@ -147,6 +147,19 @@ public class UnitController : MonoBehaviour
         }
     }
 
+    public void RotateUnitSprite()
+    {
+        Vector3 cameraGroundPos = new Vector3(Camera.main.transform.position.x, 0, Camera.main.transform.position.z);
+
+        float newYAngle = Vector3.Angle((cameraGroundPos - transform.position), Vector3.right);
+
+        newYAngle = newYAngle * ((transform.position.z < cameraGroundPos.z) ? -1 : 1);
+
+        Quaternion newRot = Quaternion.Euler(0, newYAngle, 0);
+
+        transform.rotation = newRot;
+    }
+
     public bool OnSameTeam(UnitController otherUnit)
     {
         if (otherUnit.unitTeamID == unitTeamID)

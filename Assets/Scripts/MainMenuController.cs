@@ -14,12 +14,13 @@ public class MainMenuController : MonoBehaviour {
     int numPlayersOnTeam = 0;
     string teamStr;
     Sprite SelectionCircleStartSpr;
-    InputField gameIDinputField;
+    InputField gameIDinputField, serverInputField;
     Text errorText;
 
     void Start()
     {
         gameIDinputField = mainMenuCanvas.transform.Find("GameIDInputField").GetComponent<InputField>();
+        serverInputField = mainMenuCanvas.transform.Find("ServerInputField").GetComponent<InputField>();
         errorText = mainMenuCanvas.transform.Find("ErrorText").GetComponent<Text>();
         errorText.text = "";
         confirmButton.interactable = false;
@@ -29,12 +30,14 @@ public class MainMenuController : MonoBehaviour {
 
     public void OnButtonCreateGame()
     {
+        GlobalData.instance.serverAddress = serverInputField.text;
         StartCoroutine(CreateGame());
     }
 
     public void OnButtonJoinGame()
     {
         string gameID = gameIDinputField.text;
+        GlobalData.instance.serverAddress = serverInputField.text;
 
         if (gameID == "")
         {
@@ -51,9 +54,10 @@ public class MainMenuController : MonoBehaviour {
     IEnumerator CreateGame()
     {
         GlobalData.instance.playerID = 0;
+        
 
-        WWW newGameRequest = new WWW("http://localhost/sb/createNewGame.php");
-
+        //WWW newGameRequest = new WWW("http://localhost/sb/createNewGame.php");
+        WWW newGameRequest = new WWW("http://" + GlobalData.instance.serverAddress + "/sb/createNewGame.php");
         yield return newGameRequest;
 
         if (newGameRequest.error == null)
@@ -80,7 +84,8 @@ public class MainMenuController : MonoBehaviour {
         WWWForm gameJoinID = new WWWForm();
         gameJoinID.AddField("gID", gameID);
 
-        WWW attemptGameJoin = new WWW("http://localhost/sb/joinGame.php", gameJoinID);
+        //WWW attemptGameJoin = new WWW("http://localhost/sb/joinGame.php", gameJoinID);
+        WWW attemptGameJoin = new WWW("http://" + GlobalData.instance.serverAddress + "/sb/joinGame.php", gameJoinID);
 
         yield return attemptGameJoin;
 

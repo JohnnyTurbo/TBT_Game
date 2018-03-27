@@ -9,6 +9,7 @@ public class GlobalData : MonoBehaviour {
     public int playerID;
     public int gameID;
     public string teamStr;
+    public string serverAddress;
 
     void Awake()
     {
