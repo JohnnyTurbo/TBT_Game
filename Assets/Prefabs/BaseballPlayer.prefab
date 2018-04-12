@@ -52,7 +52,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1509991384366422}
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 1.089, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.2637689, y: 0.26376888, z: 0.26376888}
   m_Children: []
   m_Father: {fileID: 4912695660746096}
@@ -65,7 +65,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1977811564322528}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2, y: 0, z: 0}
+  m_LocalPosition: {x: 1, y: 1, z: 0}
   m_LocalScale: {x: 0.74569756, y: 1.1254891, z: 0.74569756}
   m_Children:
   - {fileID: 4480287186802504}
@@ -100,6 +100,7 @@ MonoBehaviour:
   defenseStat: 2
   movementRange: 2
   AttackRange: 4
+  yOffset: 1.21
   unitType: Pitcher
   canMove: 0
   canAttack: 0

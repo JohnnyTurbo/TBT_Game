@@ -5,6 +5,7 @@ using UnityEngine;
 public class UnitController : MonoBehaviour
 {
     public int unitHealth, attackStat, defenseStat, movementRange, AttackRange;
+    public float yOffset;
     public string unitType;
     public bool canMove, canAttack;
     public bool isMoving, isAttacking;
@@ -149,15 +150,11 @@ public class UnitController : MonoBehaviour
 
     public void RotateUnitSprite()
     {
-        Vector3 cameraGroundPos = new Vector3(Camera.main.transform.position.x, 0, Camera.main.transform.position.z);
+        Vector3 targetVector = Camera.main.transform.position - transform.position;
 
-        float newYAngle = Vector3.Angle((cameraGroundPos - transform.position), Vector3.right);
+        float newYAngle = Mathf.Atan2(targetVector.z, targetVector.x) * Mathf.Rad2Deg;
 
-        newYAngle = newYAngle * ((transform.position.z < cameraGroundPos.z) ? -1 : 1);
-
-        Quaternion newRot = Quaternion.Euler(0, newYAngle, 0);
-
-        transform.rotation = newRot;
+        transform.rotation = Quaternion.Euler(0, -1 * newYAngle, 0);
     }
 
     public bool OnSameTeam(UnitController otherUnit)

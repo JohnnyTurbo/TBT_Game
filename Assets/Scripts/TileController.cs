@@ -87,12 +87,15 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     {
         if (unitOnTile == null && curUnit.movementRange >= CalculateDist(curUnit.curCoords)) 
         {
-            curUnit.transform.position = this.transform.position;
+            curUnit.transform.position = this.transform.position + new Vector3(0, curUnit.yOffset, 0);
             GameController.instance.mapGrid[curUnit.curCoords.x, curUnit.curCoords.y].unitOnTile = null;
             unitOnTile = curUnit.gameObject;
             curUnit.curCoords = curCoords;
 
-            curUnit.RotateUnitSprite();
+            if (!gameController.isOnMobile)
+            {
+                curUnit.RotateUnitSprite();
+            }
 
             return true;
         }
@@ -134,6 +137,10 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                 newHealth = otherUnit.unitHealth;
                 if (otherUnit.unitHealth <= 0)
                 {
+                    if (gameController.isOnMobile)
+                    {
+                        newDmgIcon.GetComponent<Text>().text = "";
+                    }
                     newHealth = 0;
                     GameController.instance.unitsInGame[otherUnit.unitTeamID].Remove(otherUnit);
                     Destroy(unitOnTile);

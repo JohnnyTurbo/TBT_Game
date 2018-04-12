@@ -31,6 +31,7 @@ public class GameController : MonoBehaviour {
     public Material[] playerColors;
     public Vector3[] camPositions;
     public Vector3[] camRotations;
+    public bool isOnMobile = false;
 
     public static readonly Vector3 farAway = new Vector3(1000f, 1000f, 1000f);
 
@@ -38,6 +39,7 @@ public class GameController : MonoBehaviour {
     int unitIndex = 0;
     int camPositionIndex = 1;
     bool isCameraMoving = false;
+
     string thisTurnCMDs = "";
     GameObject actionCanvas, statCanvas, messageCanvas, generalActionCanvas, debugCanvas;
     Text numUnitsText, attackText, defenseText, movementText, rangeText, unitTypeText, messageText, debugStateText, debugGameID;
@@ -50,6 +52,15 @@ public class GameController : MonoBehaviour {
     void Awake()
     {
 
+        #if UNITY_ANDROID
+            isOnMobile = true;
+            Debug.Log("Is On Android");
+        #endif
+        
+        #if UNITY_IOS
+            isOnMobile = true;
+            Debug.Log("Is On IOs");
+        #endif
         unitsInGame = new List<UnitController>[numTeams + 1];
 
         for(int i = 0; i < numTeams + 1; i++)
@@ -104,7 +115,18 @@ public class GameController : MonoBehaviour {
         if(GlobalData.instance.playerID == 0)
         {
             p1Label.gameObject.SetActive(true);
-            MoveCameraLeftButtonSelect(3.5f);
+            if (!isOnMobile)
+            {
+                MoveCameraLeftButtonSelect(3.5f);
+            }
+            else
+            {
+                Camera.main.transform.position = new Vector3(6.5f, 18, 7);
+                Camera.main.transform.rotation = Quaternion.Euler(90, -90, 0);
+                Camera.main.orthographic = true;
+                Camera.main.orthographicSize = 7.7f;
+                generalActionCanvas.transform.Find("CamMoveIcon").gameObject.SetActive(false);
+            }
             playerTeamID = 0;
             nextPlayerID = 1;
             indexOfLastCommand+=2;
@@ -115,7 +137,18 @@ public class GameController : MonoBehaviour {
         else
         {
             p2Label.gameObject.SetActive(true);
-            MoveCameraRightButtonSelect(3.5f);
+            if (!isOnMobile)
+            {
+                MoveCameraRightButtonSelect(3.5f);
+            }
+            else
+            {
+                Camera.main.transform.position = new Vector3(6.5f, 18, 7);
+                Camera.main.transform.rotation = Quaternion.Euler(90, -90, 0);
+                Camera.main.orthographic = true;
+                Camera.main.orthographicSize = 7.7f;
+                generalActionCanvas.transform.Find("CamMoveIcon").gameObject.SetActive(false);
+            }
             playerTeamID = 1;
             nextPlayerID = 0;
             StartCoroutine(GetCommands());
@@ -433,6 +466,7 @@ public class GameController : MonoBehaviour {
 
     void InitializeMap(bool isCreator)
     {
+        //Debug.Log("INIT MAP");
         //tileList = new List<GameObject>();
         IntVector2 gridSize = new IntVector2();
 
@@ -527,9 +561,9 @@ public class GameController : MonoBehaviour {
         int xLoc = (unitIndex % 3) + 2;
         int yLoc = (gridSizeY - 1) * teamID;
 
-        Vector3 newUnitLoc = new Vector3((xLoc * tileSize), 0, (yLoc * tileSize));
+        
 
-        GameObject newUnit = Instantiate(unitTypes[unitType], newUnitLoc, Quaternion.identity);
+        GameObject newUnit = Instantiate(unitTypes[unitType], Vector3.zero, Quaternion.identity);
         string unitSpriteToLoad = "";
         switch (unitType)
         {
@@ -561,14 +595,27 @@ public class GameController : MonoBehaviour {
 
         unitSpriteToLoad += (teamID == 0) ? "Blue" : "Yellow";
 
+        
+
         //Debug.Log("unitSpriteToLoad: " + unitSpriteToLoad);
 
         SpriteRenderer unitSprite = newUnit.transform.Find("Sprite").GetComponent<SpriteRenderer>();
         unitSprite.sprite = Resources.Load("PlayerSprites/" + unitSpriteToLoad, typeof (Sprite)) as Sprite;
         UnitController newUnitController = newUnit.GetComponent<UnitController>();
+
+        Vector3 newUnitLoc = new Vector3((xLoc * tileSize), newUnitController.yOffset, (yLoc * tileSize));
+        newUnit.transform.position = newUnitLoc;
+
         newUnitController.unitTeamID = teamID;
         newUnitController.unitIndex = unitIndex;
-        newUnitController.RotateUnitSprite();
+        if (!isOnMobile)
+        {
+            newUnitController.RotateUnitSprite();
+        }
+        else
+        {
+            newUnit.transform.rotation = Quaternion.Euler(0, 0, 90);
+        }
         newUnitController.curCoords = new IntVector2(xLoc, yLoc);
         mapGrid[xLoc, yLoc].isOccupied = true;
         mapGrid[xLoc, yLoc].unitOnTile = newUnit;
@@ -713,6 +760,10 @@ public class GameController : MonoBehaviour {
 
     void RotateAllUnits()
     {
+        if (isOnMobile)
+        {
+            return;
+        }
         foreach(UnitController curUC in unitsInGame[numTeams])
         {
             if (curUC != null)

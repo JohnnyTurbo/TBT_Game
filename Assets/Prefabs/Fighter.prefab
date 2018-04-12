@@ -52,7 +52,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1146065703829724}
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0.719, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.14129302, y: 0.14129302, z: 0.14129302}
   m_Children: []
   m_Father: {fileID: 4534759410828672}
@@ -65,7 +65,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1704351329726306}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2, y: 0, z: 2}
+  m_LocalPosition: {x: 1, y: 1, z: 2}
   m_LocalScale: {x: 1, y: 1.5629535, z: 1}
   m_Children:
   - {fileID: 4444118219066302}
@@ -100,6 +100,7 @@ MonoBehaviour:
   defenseStat: 2
   movementRange: 2
   AttackRange: 2
+  yOffset: 1.11
   unitType: Middleweight
   canMove: 0
   canAttack: 0

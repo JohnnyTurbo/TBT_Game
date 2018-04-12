@@ -7,6 +7,7 @@ public class NetworkController : MonoBehaviour {
     public static NetworkController instance;
 
     string serverAddress;
+    string dbUsername = "johnnytu_testusr", dbPassword = "OAnF8TqR12PJ";
 
     void Awake()
     {
@@ -15,7 +16,8 @@ public class NetworkController : MonoBehaviour {
 
     void Start()
     {
-        serverAddress = GlobalData.instance.serverAddress;
+        //serverAddress = GlobalData.instance.serverAddress;
+        serverAddress = "homecookedgames.com/sbphp/scripts/";
     }
 
 	public void SendStringToDB(string dataToSend, int nextPlayerID)
@@ -37,8 +39,10 @@ public class NetworkController : MonoBehaviour {
         form.AddField("newCmd", dataToSend);
         form.AddField("gID", GlobalData.instance.gameID);
         form.AddField("whoTurn", nextPlayerID);
-        //WWW www = new WWW("http://localhost/sb/sendCmd.php", form);
-        WWW www = new WWW("http://" + serverAddress + "/sb/sendCmd.php", form);
+        form.AddField("username", dbUsername);
+        form.AddField("password", dbPassword);
+
+        WWW www = new WWW("http://" + serverAddress + "sendCmd.php", form);
 
         yield return www;
 
@@ -58,8 +62,10 @@ public class NetworkController : MonoBehaviour {
         WWWForm form = new WWWForm();
 
         form.AddField("gID", GlobalData.instance.gameID);
+        form.AddField("username", dbUsername);
+        form.AddField("password", dbPassword);
 
-        WWW www = new WWW("http://" + serverAddress + "/sb/receiveCmd.php", form);
+        WWW www = new WWW("http://" + serverAddress + "receiveCmd.php", form);
 
         yield return www;
 
@@ -79,8 +85,10 @@ public class NetworkController : MonoBehaviour {
         WWWForm form = new WWWForm();
 
         form.AddField("gID", GlobalData.instance.gameID);
+        form.AddField("username", dbUsername);
+        form.AddField("password", dbPassword);
 
-        WWW www = new WWW("http://" + serverAddress + "/sb/receiveTurn.php", form);
+        WWW www = new WWW("http://" + serverAddress + "receiveTurn.php", form);
 
         yield return www;
 

@@ -13,8 +13,8 @@ public class FaceCamera : MonoBehaviour {
 
     void Update()
     {
-        transform.LookAt(transform.position + m_Camera.transform.rotation * Vector3.forward,
-            m_Camera.transform.rotation * Vector3.up);
+        Vector3 targetVector = this.transform.position - m_Camera.transform.position;
+        transform.rotation = Quaternion.LookRotation(targetVector, m_Camera.transform.rotation * Vector3.up);
     }
 
     public void DestroyInTime(float timeAlive)
