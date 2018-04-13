@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.Video;
 
 public class MainMenuController : MonoBehaviour {
 
@@ -17,28 +18,37 @@ public class MainMenuController : MonoBehaviour {
     InputField gameIDinputField, serverInputField;
     Text errorText, serverErrorText;
     GameObject loadingScreen;
-    Button tryAgainButton;
+    Button tryAgainButton, playButton, tutorialButton;
     string dbUsername = "johnnytu_testusr", dbPassword = "OAnF8TqR12PJ";
     delegate void tryAgainFunction();
     tryAgainFunction handler;
+    VideoPlayer introVP;
 
     void Start()
     {
-        gameIDinputField = mainMenuCanvas.transform.Find("GameIDInputField").GetComponent<InputField>();
-        serverInputField = mainMenuCanvas.transform.Find("ServerInputField").GetComponent<InputField>();
+        //gameIDinputField = mainMenuCanvas.transform.Find("GameIDInputField").GetComponent<InputField>();
+        //serverInputField = mainMenuCanvas.transform.Find("ServerInputField").GetComponent<InputField>();
         loadingScreen = mainMenuCanvas.transform.Find("LoadingScreen").gameObject;
+        playButton = mainMenuCanvas.transform.Find("PlayButton").GetComponent<Button>();
+        //TODO Check if they have played the tutorial before
+        playButton.interactable = GlobalData.instance.hasPlayedTutorial;
+        tutorialButton = mainMenuCanvas.transform.Find("TutorialButton").GetComponent<Button>();
+        //TODO Check if they have watched the intro video before
+        tutorialButton.interactable = GlobalData.instance.hasSeenIntroVid;
         errorText = mainMenuCanvas.transform.Find("ErrorText").GetComponent<Text>();
         errorText.text = "";
         serverErrorText = loadingScreen.transform.Find("ServerErrorText").GetComponent<Text>();
         serverErrorText.text = "";
         tryAgainButton = loadingScreen.transform.Find("TryAgainButton").GetComponent<Button>();
+        introVP = this.GetComponent<VideoPlayer>();
         tryAgainButton.gameObject.SetActive(false);
         loadingScreen.SetActive(false);
         confirmButton.interactable = false;
-        mainMenuCanvas.SetActive(false);
+        //mainMenuCanvas.SetActive(false);
         SelectionCircleStartSpr = team[0].sprite;
     }
 
+    /*
     public void OnButtonCreateGame()
     {
         Debug.Log("OnButtonCreateGame()");
@@ -72,6 +82,42 @@ public class MainMenuController : MonoBehaviour {
             StartCoroutine(JoinGame(gameID));
         }
     }
+    */
+
+    public void OnButtonPlay()
+    {
+        Debug.Log("OnButtonPlay()");
+    }
+
+    public void OnButtonTutorial()
+    {
+        Debug.Log("OnButtonTutorial()");
+        GlobalData.instance.hasPlayedTutorial = true;
+        playButton.interactable = true;
+        loadingScreen.SetActive(true);
+        SceneManager.LoadScene("PublicAlphaTutorial");
+    }
+
+    public void OnButtonIntroVideo()
+    {
+        Debug.Log("OnButtonIntroVideo");
+        //Handheld.PlayFullScreenMovie("Videos/JT_SoupsOn2017.mov", Color.black, FullScreenMovieControlMode.Hidden, 
+        //                             FullScreenMovieScalingMode.AspectFit);
+        loadingScreen.SetActive(true);
+        //initialOptions.SetActive(false);
+        introVP.Play();
+        introVP.loopPointReached += LoopPointReached;
+    }
+
+    private void LoopPointReached(VideoPlayer source)
+    {
+        //throw new System.NotImplementedException();
+        Debug.Log("LoopPointReached()");
+        introVP.Stop();
+        loadingScreen.SetActive(false);
+        GlobalData.instance.hasSeenIntroVid = true;
+        tutorialButton.interactable = true;
+    }
 
     public void OnButtonTryAgain()
     {
@@ -82,6 +128,7 @@ public class MainMenuController : MonoBehaviour {
         handler();
     }
 
+    /*
     IEnumerator CreateGame()
     {
         GlobalData.instance.playerID = 0;
@@ -143,6 +190,7 @@ public class MainMenuController : MonoBehaviour {
 
         
     }
+    */
 
     public void OnPlayerSelect(int playerID)
     {
