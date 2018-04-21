@@ -7,86 +7,111 @@ using UnityEngine.Video;
 
 public class MainMenuController : MonoBehaviour {
 
-    public GameObject mainMenuCanvas, selectPlayerCanvas;
+    private static MainMenuController _instance;
+
+    public static MainMenuController instance;
+    
+    public GameObject mainMenuCanvas, loginCanvas, createUserCanvas, userHomepageCanvas, createGameCanvas, draftTeamCanvas,
+                      loadingScreenCanvas, mainOptionsCanvas;
+    public GameObject activeGameButtonPrefab, pendingGameButtonPrefab, pastGameButtonPrefab;
     public Sprite[] athletes;
     public Image[] team;
     public Button confirmButton;
 
+    readonly string serverAddress = "http://homecookedgames.com/sbphp/scripts/";
+    readonly string dbUsername = "johnnytu_testusr", dbPassword = "OAnF8TqR12PJ";
+    readonly int maxNumPlayersOnTeam = 3;
+
     int numPlayersOnTeam = 0;
-    string teamStr;
+    string teamStr = "", gameIdToJoin = "";
     Sprite SelectionCircleStartSpr;
-    InputField gameIDinputField, serverInputField;
+    InputField usernameIF, pinIF, newUsernameIF, newPinIF, newPinConfIF, newEmailIF, gameIDIF;
     Text errorText, serverErrorText;
     GameObject loadingScreen;
     Button tryAgainButton, playButton, tutorialButton;
-    string dbUsername = "johnnytu_testusr", dbPassword = "OAnF8TqR12PJ";
-    delegate void tryAgainFunction();
-    tryAgainFunction handler;
+    
     VideoPlayer introVP;
 
-    void Start()
+    delegate void tryAgainFunction();
+    tryAgainFunction tryAgainButtonHandler;
+
+    void Awake()
     {
-        //gameIDinputField = mainMenuCanvas.transform.Find("GameIDInputField").GetComponent<InputField>();
-        //serverInputField = mainMenuCanvas.transform.Find("ServerInputField").GetComponent<InputField>();
-        loadingScreen = mainMenuCanvas.transform.Find("LoadingScreen").gameObject;
-        playButton = mainMenuCanvas.transform.Find("PlayButton").GetComponent<Button>();
-        //TODO Check if they have played the tutorial before
-        playButton.interactable = GlobalData.instance.hasPlayedTutorial;
-        tutorialButton = mainMenuCanvas.transform.Find("TutorialButton").GetComponent<Button>();
-        //TODO Check if they have watched the intro video before
-        tutorialButton.interactable = GlobalData.instance.hasSeenIntroVid;
-        errorText = mainMenuCanvas.transform.Find("ErrorText").GetComponent<Text>();
-        errorText.text = "";
-        serverErrorText = loadingScreen.transform.Find("ServerErrorText").GetComponent<Text>();
-        serverErrorText.text = "";
-        tryAgainButton = loadingScreen.transform.Find("TryAgainButton").GetComponent<Button>();
-        introVP = this.GetComponent<VideoPlayer>();
-        tryAgainButton.gameObject.SetActive(false);
-        loadingScreen.SetActive(false);
-        confirmButton.interactable = false;
-        //mainMenuCanvas.SetActive(false);
-        SelectionCircleStartSpr = team[0].sprite;
-    }
-
-    /*
-    public void OnButtonCreateGame()
-    {
-        Debug.Log("OnButtonCreateGame()");
-
-        handler = OnButtonCreateGame;
-        
-        GlobalData.instance.serverAddress = serverInputField.text;
-        loadingScreen.SetActive(true);
-        
-        StartCoroutine(CreateGame());
-    }
-
-    public void OnButtonJoinGame()
-    {
-        Debug.Log("OnButtonJoinGame()");
-
-        handler = OnButtonJoinGame;
-
-        string gameID = gameIDinputField.text;
-        GlobalData.instance.serverAddress = serverInputField.text;
-        loadingScreen.SetActive(true);
-
-        if (gameID == "")
+        if (_instance != null && _instance != this)
         {
-            errorText.text = "Error: no game ID entered!";
+            Destroy(gameObject);
             return;
         }
         else
         {
-            errorText.text = "";
-            StartCoroutine(JoinGame(gameID));
+            _instance = this;
         }
+
+        instance = _instance;
     }
-    */
+
+    void Start()
+    {
+        //Find needed objects
+
+        errorText = mainMenuCanvas.transform.Find("ErrorText").GetComponent<Text>();
+
+        playButton = mainOptionsCanvas.transform.Find("PlayButton").GetComponent<Button>();
+        tutorialButton = mainOptionsCanvas.transform.Find("TutorialButton").GetComponent<Button>();
+
+        usernameIF = loginCanvas.transform.Find("UsernameIF").GetComponent<InputField>();
+        pinIF = loginCanvas.transform.Find("PinIF").GetComponent<InputField>();
+
+        newUsernameIF = createUserCanvas.transform.Find("NewUsernameIF").GetComponent<InputField>();
+        newPinIF = createUserCanvas.transform.Find("NewPinIF").GetComponent<InputField>();
+        newPinConfIF = createUserCanvas.transform.Find("NewPinConfIF").GetComponent<InputField>();
+        newEmailIF = createUserCanvas.transform.Find("NewEmailIF").GetComponent<InputField>();
+
+        gameIDIF = userHomepageCanvas.transform.Find("GameIDIF").GetComponent<InputField>();
+
+        loadingScreen = loadingScreenCanvas.transform.Find("LoadingScreen").gameObject;
+        serverErrorText = loadingScreen.transform.Find("ServerErrorText").GetComponent<Text>();
+        tryAgainButton = loadingScreen.transform.Find("TryAgainButton").GetComponent<Button>();
+
+        introVP = this.GetComponent<VideoPlayer>();
+
+        //Set defaults on objects
+
+        errorText.text = "";
+        serverErrorText.text = "";
+
+        //TODO Check if they have played the tutorial before
+        playButton.interactable = GlobalData.instance.hasPlayedTutorial;
+
+        //TODO Check if they have watched the intro video before
+        tutorialButton.interactable = GlobalData.instance.hasSeenIntroVid;
+
+        confirmButton.interactable = false;
+        SelectionCircleStartSpr = team[0].sprite;
+
+        //deactivate unneeded componenets.
+
+        loginCanvas.SetActive(false);
+        createUserCanvas.SetActive(false);
+        userHomepageCanvas.SetActive(false);
+        createGameCanvas.SetActive(false);
+        draftTeamCanvas.SetActive(false);
+
+        tryAgainButton.gameObject.SetActive(false);
+        loadingScreen.SetActive(false);
+
+        //mainMenuCanvas.SetActive(false);
+
+
+        //DELETE AFTER FILMING TUTORIAL 4
+        //GlobalData.instance.teamStr = "1,0,3";
+    }
 
     public void OnButtonPlay()
     {
         Debug.Log("OnButtonPlay()");
+        mainOptionsCanvas.SetActive(false);
+        loginCanvas.SetActive(true);
     }
 
     public void OnButtonTutorial()
@@ -119,27 +144,260 @@ public class MainMenuController : MonoBehaviour {
         tutorialButton.interactable = true;
     }
 
+    public void OnButtonLogin()
+    {
+        //Debug.Log("OnButtonLogin()");
+
+        errorText.text = "";
+
+        if (usernameIF.text == "" && pinIF.text == "")
+        {
+            errorText.text = "Please enter your Username and PIN.";
+        }
+        else if (usernameIF.text == "")
+        {
+            errorText.text = "Please enter your Username.";
+        }
+        else if(pinIF.text == "")
+        {
+            errorText.text = "Please enter your PIN";
+        }
+        else
+        {
+            Debug.Log("Username and password are both entered");
+            errorText.text = "";
+
+            //Call php login script
+            StartCoroutine(NetworkController.AccountLogin(usernameIF.text, pinIF.text));
+        }
+    }
+
+    public void AccountLoginCallback(string messageFromServer)
+    {
+        if (messageFromServer.StartsWith("Error:"))
+        {
+            messageFromServer = messageFromServer.Remove(0, 7);
+            if (messageFromServer == "Incorrect Username or PIN")
+            {
+                errorText.text = "Incorrect Username or PIN";
+            }
+        }
+        else if (messageFromServer.StartsWith("Login success!"))
+        {
+            usernameIF.text = "";
+            pinIF.text = "";
+            string playerID = messageFromServer.Remove(0, 14);
+            Debug.Log("Login Success and mfs = " + playerID);
+            GlobalData.instance.playerID = playerID;
+            loginCanvas.SetActive(false);
+            userHomepageCanvas.SetActive(true);
+            StartCoroutine(PopulateUserHomepage());
+        }
+        else
+        {
+            Debug.LogError("Unknown message from server: " + messageFromServer);
+        }
+    }
+
+    public void OnButtonSignUp()
+    {
+        //Debug.Log("OnButtonSignUp()");
+
+        errorText.text = "";
+
+        loginCanvas.SetActive(false);
+        createUserCanvas.SetActive(true);
+    }
+
+    public void OnButtonCreateAccount()
+    {
+        //Debug.Log("OnButtonCreateAccount()");
+
+        errorText.text = "";
+
+        if (newUsernameIF.text == "" || newPinIF.text == "" || newPinConfIF.text == "" || newEmailIF.text == "")
+        {
+            errorText.text = "Please fill out all fields!";
+        }
+        else if(newPinIF.text.Length < 3 || newPinIF.text.Length > 8)
+        {
+            errorText.text = "PIN must be between 3 and 8 digits long!";
+        }
+        else if(newPinIF.text != newPinConfIF.text)
+        {
+            errorText.text = "PINs do not match!";
+        }
+        else if (!ValidateEmailAddress(newEmailIF.text))
+        {
+            errorText.text = "Please enter a valid email address!";
+        }
+        else
+        {
+            Debug.Log("All fields Valid");
+            errorText.text = "";
+
+            //Call php create account script
+            StartCoroutine(NetworkController.CreateUserAccount(newUsernameIF.text, newPinIF.text, newEmailIF.text));
+        }
+    }
+
+    public void CreateAccountCallback(string messageFromServer)
+    {
+        if (messageFromServer.StartsWith("Error:"))
+        {
+            messageFromServer = messageFromServer.Remove(0, 7);
+            string[] splitMessage = messageFromServer.Split('\'');
+            Debug.LogError("Create account error: " + messageFromServer);
+
+            /*
+            foreach(string st in splitMessage)
+            {
+                Debug.Log(st);
+            }
+            */
+
+            if (splitMessage[0] == "Duplicate entry ")
+            {
+                errorText.text = splitMessage[3] + ": '" + splitMessage[1] + "' is already in use! Try again.";
+            }
+        }
+        else if(messageFromServer == "New account successfully created")
+        {
+            Debug.Log("Account created successfully");
+            newUsernameIF.text = "";
+            newPinIF.text = "";
+            newPinConfIF.text = "";
+            newEmailIF.text = "";
+            createUserCanvas.SetActive(false);
+            loginCanvas.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("Unknown message from server: " + messageFromServer);
+        }
+    }
+
+    bool ValidateEmailAddress(string addressToCheck)
+    {
+        if (addressToCheck.Contains("@"))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    IEnumerator PopulateUserHomepage()
+    {
+        WWWForm getActiveGames = new WWWForm();
+
+        getActiveGames.AddField("username", dbUsername);
+        getActiveGames.AddField("password", dbPassword);
+        getActiveGames.AddField("playerID", GlobalData.instance.playerID);
+
+        WWW fetchUserGames = new WWW(serverAddress + "fetchUserGames.php", getActiveGames);
+
+        yield return fetchUserGames;
+
+        if(fetchUserGames.error == null)
+        {
+            string strToParse = fetchUserGames.text;
+            string[] usersGames = strToParse.Split('|');
+
+            //foreach (string gameString in usersGames)
+            for (int i = 0; i < usersGames.Length - 1; i++)
+            {
+                string[] gameStringComponents = usersGames[i].Split(',');
+                string gamePlayerID = (gameStringComponents[1] == "0") ? "1" : "2";
+
+                WWWForm getGameInfo = new WWWForm();
+
+                getGameInfo.AddField("username", dbUsername);
+                getGameInfo.AddField("password", dbPassword);
+                getGameInfo.AddField("gameID", gameStringComponents[0]);
+
+                WWW fetchGameInfo = new WWW(serverAddress + "fetchGameInfo.php", getGameInfo);
+
+                yield return fetchGameInfo;
+
+                if (fetchGameInfo.error == null)
+                {
+                    string[] gameInfoComponents = fetchGameInfo.text.Split('|');
+                    string whoseTurn = (gameInfoComponents[1] == "0") ? "1" : "2";
+                    Debug.Log("Player with global ID: " + GlobalData.instance.playerID + " is Player: " + gamePlayerID +
+                              " in game with ID: " + gameStringComponents[0] + ". And they are " + gameStringComponents[2] +
+                              " moves behind. The game's version is: " + gameInfoComponents[0] + ", the status is: " +
+                              gameInfoComponents[1] + ", and it is player " + whoseTurn + "'s turn");
+                }
+                else
+                {
+                    Debug.LogError("Could not fetch game data.\n" + fetchGameInfo.error);
+                    errorText.text = "Could not fetch game data, try again later.";
+                }
+            }
+        }
+        else
+        {
+            Debug.LogError("Could not fetch user's games.\n" + fetchUserGames.error);
+            errorText.text = "Could not fetch your games, try again later.";
+        }
+    }
+
+    public void OnButtonCreateGame()
+    {
+        Debug.Log("OnButtonCreateGame()");
+
+        tryAgainButtonHandler = OnButtonCreateGame;
+
+        userHomepageCanvas.SetActive(false);
+        draftTeamCanvas.SetActive(true);
+        //StartCoroutine(CreateGame());
+    }
+
+    public void OnButtonJoinGame()
+    {
+        Debug.Log("OnButtonJoinGame()");
+
+        tryAgainButtonHandler = OnButtonJoinGame;
+
+        string gameID = gameIDIF.text;
+
+        if (gameID == "")
+        {
+            errorText.text = "Error: no game ID entered!";
+            return;
+        }
+        else
+        {
+            errorText.text = "";
+            gameIdToJoin = gameID;
+            userHomepageCanvas.SetActive(false);
+            draftTeamCanvas.SetActive(true);
+        }
+    }
+
     public void OnButtonTryAgain()
     {
         Debug.Log("OnButtonTryAgain()");
 
         tryAgainButton.gameObject.SetActive(false);
         serverErrorText.text = "";
-        handler();
+        tryAgainButtonHandler();
     }
 
-    /*
-    IEnumerator CreateGame()
+
+    IEnumerator JoinGame()
     {
-        GlobalData.instance.playerID = 0;
+        GlobalData.instance.inGamePlayerID = 0;
 
-
-        //WWW newGameRequest = new WWW("http://localhost/sb/createNewGame.php");
-        //WWW newGameRequest = new WWW("http://" + GlobalData.instance.serverAddress + "/sb/createNewGame.php");
         WWWForm dbCredentials = new WWWForm();
         dbCredentials.AddField("username", dbUsername);
         dbCredentials.AddField("password", dbPassword);
-        WWW newGameRequest = new WWW("http://homecookedgames.com/sbphp/scripts/createNewGame.php", dbCredentials);
+        dbCredentials.AddField("playerID", GlobalData.instance.playerID);
+        Debug.Log("PID = " + GlobalData.instance.playerID);
+        WWW newGameRequest = new WWW(serverAddress + "createNewGame.php", dbCredentials);
         yield return newGameRequest;
 
         if (newGameRequest.error == null)
@@ -147,8 +405,9 @@ public class MainMenuController : MonoBehaviour {
             Debug.Log("New game created! ");
             int convertedInt;
             int.TryParse(newGameRequest.text, out convertedInt);
-            GlobalData.instance.gameID = convertedInt;
+            GlobalData.instance.currentGameID = convertedInt;
             Debug.Log("GameID is: " + convertedInt.ToString());
+            //Debug.Log("GameID is: " + newGameRequest.text);
             SceneManager.LoadScene("Scene2");
         }
         else
@@ -161,17 +420,16 @@ public class MainMenuController : MonoBehaviour {
 
     IEnumerator JoinGame(string gameID)
     {
-        GlobalData.instance.playerID = 1;
+        GlobalData.instance.inGamePlayerID = 1;
         int convertedInt;
-        int.TryParse(gameIDinputField.text, out convertedInt);
-        GlobalData.instance.gameID = convertedInt;
+        int.TryParse(gameID, out convertedInt);
+        GlobalData.instance.currentGameID = convertedInt;
         WWWForm gameJoinID = new WWWForm();
         gameJoinID.AddField("gID", gameID);
         gameJoinID.AddField("username", dbUsername);
         gameJoinID.AddField("password", dbPassword);
-        //WWW attemptGameJoin = new WWW("http://localhost/sb/joinGame.php", gameJoinID);
-        //WWW attemptGameJoin = new WWW("http://" + GlobalData.instance.serverAddress + "/sb/joinGame.php", gameJoinID);
-        WWW attemptGameJoin = new WWW("http://homecookedgames.com/sbphp/scripts/joinGame.php", gameJoinID);
+        gameJoinID.AddField("playerID", GlobalData.instance.playerID);
+        WWW attemptGameJoin = new WWW(serverAddress + "joinGame.php", gameJoinID);
 
         yield return attemptGameJoin;
 
@@ -186,16 +444,13 @@ public class MainMenuController : MonoBehaviour {
             Debug.LogError("Error: could not join game with ID: " + gameID + "\nError from PHP script: " + attemptGameJoin.error);
             serverErrorText.text = "Error: " + attemptGameJoin.error;
             tryAgainButton.gameObject.SetActive(true);
-        }
-
-        
+        }   
     }
-    */
 
     public void OnPlayerSelect(int playerID)
     {
 
-        if(numPlayersOnTeam >= 3)
+        if(numPlayersOnTeam >= maxNumPlayersOnTeam)
         {
             return;
         }
@@ -207,7 +462,7 @@ public class MainMenuController : MonoBehaviour {
 
         teamStr += playerID;
 
-        if(numPlayersOnTeam == 3)
+        if(numPlayersOnTeam == maxNumPlayersOnTeam)
         {
             confirmButton.interactable = true;
         }
@@ -219,10 +474,17 @@ public class MainMenuController : MonoBehaviour {
 
     public void OnConfirmButtonSelect()
     {
-        //teamStr = "&spn|" + teamStr;
         GlobalData.instance.teamStr = teamStr;
-        selectPlayerCanvas.SetActive(false);
-        mainMenuCanvas.SetActive(true);
+        draftTeamCanvas.SetActive(false);
+        loadingScreen.SetActive(true);
+        if (gameIdToJoin == "")
+        {
+            StartCoroutine(JoinGame());
+        }
+        else
+        {
+            StartCoroutine(JoinGame(gameIdToJoin));
+        }
     }
 
     public void OnClearButtonSelect()

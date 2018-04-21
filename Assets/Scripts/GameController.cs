@@ -112,7 +112,7 @@ public class GameController : MonoBehaviour {
         //InitializeMap(0 == GlobalData.instance.playerID);
         //SpawnUnits();
 
-        if(GlobalData.instance.playerID == 0)
+        if(GlobalData.instance.inGamePlayerID == 0)
         {
             p1Label.gameObject.SetActive(true);
             if (!isOnMobile)
@@ -155,7 +155,7 @@ public class GameController : MonoBehaviour {
             curState = GameState.PlayerSelectTile;
         }
 
-        debugGameID.text = "GameID: " + GlobalData.instance.gameID;
+        debugGameID.text = "GameID: " + GlobalData.instance.currentGameID;
 
         cursor = Instantiate(cursor, farAway, Quaternion.identity);
         
@@ -376,7 +376,7 @@ public class GameController : MonoBehaviour {
     }
 
     IEnumerator GetCommands()
-    {
+    { 
         CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.ReceiveData());
         yield return cd.coroutine;
         string strToParse;
@@ -415,6 +415,7 @@ public class GameController : MonoBehaviour {
                     cmdParts = cmdToProc[2].Split(',');
                     foreach (string unitTypeStr in cmdParts)
                     {
+                        Debug.Log(unitTypeStr);
                         int unitType = int.Parse(unitTypeStr);
                         SpawnUnit(unitType, teamID);
                     }
@@ -466,7 +467,7 @@ public class GameController : MonoBehaviour {
 
     void InitializeMap(bool isCreator)
     {
-        //Debug.Log("INIT MAP");
+        Debug.Log("INIT MAP");
         //tileList = new List<GameObject>();
         IntVector2 gridSize = new IntVector2();
 
@@ -509,7 +510,8 @@ public class GameController : MonoBehaviour {
     IEnumerator SendUnitsToServer()
     {
         //Debug.Log("Sending Units to Server");
-        string strToSend = "&spn|" + GlobalData.instance.playerID + "|" + GlobalData.instance.teamStr;
+        string strToSend = "&spn|" + GlobalData.instance.inGamePlayerID + "|" + GlobalData.instance.teamStr;
+        Debug.Log("Sending unit string '" + strToSend + "' to server.");
         Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(strToSend, 1));
         yield return sendCMD;
         //Debug.Log("units sent to server: " + strToSend);

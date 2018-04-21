@@ -8,14 +8,18 @@ public class GlobalData : MonoBehaviour {
 
     public static GlobalData instance;
 
-    public int playerID;
-    public int gameID;
+    public string playerID;
+    public int inGamePlayerID;
+    public int currentGameID;
     public string teamStr;
     public string serverAddress;
-    public bool hasSeenIntroVid = false, hasPlayedTutorial = false;
+    public bool hasSeenIntroVid, hasPlayedTutorial;
 
     void Awake()
     {
+        hasSeenIntroVid = true;
+        hasPlayedTutorial = true;
+
         if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
