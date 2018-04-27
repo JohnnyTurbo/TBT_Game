@@ -27,7 +27,7 @@ public class MainMenuController : MonoBehaviour {
     Sprite SelectionCircleStartSpr;
     InputField usernameIF, pinIF, newUsernameIF, newPinIF, newPinConfIF, newEmailIF, gameIDIF;
     Text errorText, serverErrorText;
-    GameObject loadingScreen;
+    GameObject loadingScreen, usersGamesContainer;
     Button tryAgainButton, playButton, tutorialButton;
     
     VideoPlayer introVP;
@@ -68,6 +68,7 @@ public class MainMenuController : MonoBehaviour {
         newEmailIF = createUserCanvas.transform.Find("NewEmailIF").GetComponent<InputField>();
 
         gameIDIF = userHomepageCanvas.transform.Find("GameIDIF").GetComponent<InputField>();
+        usersGamesContainer = userHomepageCanvas.transform.Find("UsersGamesContainer").gameObject;
 
         loadingScreen = loadingScreenCanvas.transform.Find("LoadingScreen").gameObject;
         serverErrorText = loadingScreen.transform.Find("ServerErrorText").GetComponent<Text>();
@@ -289,8 +290,15 @@ public class MainMenuController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// String returned from server uses syntxax: gameID,gamePlayerID,movesBehind,version,status,whoseTurn|gameID...
+    /// String index reference                    0      1            2           3       4      5        |0
+    /// </summary>
+    /// <returns></returns>
     IEnumerator PopulateUserHomepage()
     {
+        float startTime = Time.time;
+
         WWWForm getActiveGames = new WWWForm();
 
         getActiveGames.AddField("username", dbUsername);
@@ -303,10 +311,62 @@ public class MainMenuController : MonoBehaviour {
 
         if(fetchUserGames.error == null)
         {
+
+            //Debug.Log("Users games: " + fetchUserGames.text);
+
+            string[] userGamesInfo = fetchUserGames.text.Split('|');
+
+            for (int i = 0; i < userGamesInfo.Length; i++)
+            {
+                string[] gameStringComponents = userGamesInfo[i].Split(',');
+                string gamePlayerID = (gameStringComponents[1] == "0") ? "1" : "2";
+                string whoseTurn = (gameStringComponents[5] == "0") ? "1" : "2";
+                /*
+                Debug.Log("Player with global ID: " + GlobalData.instance.playerID + " is Player: " + gamePlayerID +
+                          " in game with ID: " + gameStringComponents[0] + ". And they are " + gameStringComponents[2] +
+                          " moves behind. The game's version is: " + gameStringComponents[3] + ", the status is: " +
+                          gameStringComponents[4] + ", and it is player " + whoseTurn + "'s turn.");
+                */
+                GameObject gameButton;
+
+                switch (gameStringComponents[4])
+                {
+                    case "0":
+                        gameButton = pendingGameButtonPrefab;
+                        break;
+
+                    case "1":
+                        gameButton = activeGameButtonPrefab;
+                        break;
+
+                    case "2":
+                        gameButton = pastGameButtonPrefab;
+                        break;
+
+                    default:
+                        Debug.LogError("Error: cannot load gameID: " + gameStringComponents[i] + " because it is in unkown state: " +
+                                        gameStringComponents[4]);
+                        gameButton = null;
+                        break;
+                }
+                Vector3 newButtonPos = new Vector3(0, (i * -175f) - 255f, 0f);
+
+                GameObject newGameButtonGO = GameObject.Instantiate(gameButton, usersGamesContainer.transform);
+                Button newGameButton = newGameButtonGO.GetComponent<Button>();
+                Text newButtonText = newGameButtonGO.transform.Find("Text").GetComponent<Text>();
+                newGameButtonGO.transform.localPosition = newButtonPos;
+
+                string turnText = (gameStringComponents[1] == gameStringComponents[5]) ? "Your Turn" : "Opponent's Turn";
+                newButtonText.text = "Game ID: " + gameStringComponents[0] + " - " + turnText;
+                newGameButton.onClick.AddListener(() => LoadGame(gameStringComponents[0]));                
+            }
+
+            
+
+            /*
             string strToParse = fetchUserGames.text;
             string[] usersGames = strToParse.Split('|');
 
-            //foreach (string gameString in usersGames)
             for (int i = 0; i < usersGames.Length - 1; i++)
             {
                 string[] gameStringComponents = usersGames[i].Split(',');
@@ -337,12 +397,20 @@ public class MainMenuController : MonoBehaviour {
                     errorText.text = "Could not fetch game data, try again later.";
                 }
             }
+            */
         }
         else
         {
             Debug.LogError("Could not fetch user's games.\n" + fetchUserGames.error);
             errorText.text = "Could not fetch your games, try again later.";
         }
+
+        NetworkController.instance.ServerCallTime(startTime, "PopulateUserHomepage");
+    }
+
+    void LoadGame(string gameID)
+    {
+        Debug.Log("LoadGame(string " + gameID + ")");
     }
 
     public void OnButtonCreateGame()

@@ -17,7 +17,7 @@ public class NetworkController : MonoBehaviour {
     void Start()
     {
         //serverAddress = GlobalData.instance.serverAddress;
-        serverAddress = "homecookedgames.com/sbphp/scripts/";
+        serverAddress = "http://homecookedgames.com/sbphp/scripts/";
     }
 
 	public void SendStringToDB(string dataToSend, int nextPlayerID)
@@ -29,6 +29,8 @@ public class NetworkController : MonoBehaviour {
     {
         Debug.Log("AccountLogin(" + user + ", " + pin + ")");
 
+        float networkFunctionStartTime = Time.time;
+
         WWWForm form = new WWWForm();
 
         form.AddField("DBusername", dbUsername);
@@ -36,9 +38,11 @@ public class NetworkController : MonoBehaviour {
         form.AddField("username", user);
         form.AddField("pin", pin);
 
-        WWW www = new WWW("http://" + serverAddress + "accountLogin.php", form);
+        WWW www = new WWW(serverAddress + "accountLogin.php", form);
 
         yield return www;
+
+        //instance.ServerCallTime(networkFunctionStartTime, "AccountLogin()");
 
         if (www.error == null)
         {
@@ -55,6 +59,8 @@ public class NetworkController : MonoBehaviour {
     {
         //Debug.Log("CreateUserAccount(" + newUsername + ", " + pin + ", " + emailAddress + ")");
 
+        float networkFunctionStartTime = Time.time;
+
         WWWForm form = new WWWForm();
 
         form.AddField("DBusername", dbUsername);
@@ -63,9 +69,11 @@ public class NetworkController : MonoBehaviour {
         form.AddField("pin", pin);
         form.AddField("email", emailAddress);
 
-        WWW www = new WWW("http://" + serverAddress + "createAccount.php", form);
+        WWW www = new WWW(serverAddress + "createAccount.php", form);
 
         yield return www;
+
+        //instance.ServerCallTime(networkFunctionStartTime, "CreateUserAccount()");
 
         if (www.error == null)
         {
@@ -81,17 +89,22 @@ public class NetworkController : MonoBehaviour {
     public IEnumerator SendData(string dataToSend, int nextPlayerID)
     {
         //Debug.Log("SendData(" + dataToSend + ", " + nextPlayerID + ")");
-        WWWForm form = new WWWForm();
 
+        float networkFunctionStartTime = Time.time;
+
+        WWWForm form = new WWWForm();
+        
         form.AddField("newCmd", dataToSend);
         form.AddField("gID", GlobalData.instance.currentGameID);
         form.AddField("whoTurn", nextPlayerID);
         form.AddField("username", dbUsername);
         form.AddField("password", dbPassword);
 
-        WWW www = new WWW("http://" + serverAddress + "sendCmd.php", form);
+        WWW www = new WWW(serverAddress + "sendCmd.php", form);
 
         yield return www;
+
+        //ServerCallTime(networkFunctionStartTime, "SebdData()");
 
         if (www.error == null)
         {
@@ -106,15 +119,21 @@ public class NetworkController : MonoBehaviour {
 
     public IEnumerator ReceiveData()
     {
+        //Debug.Log("ReceiveData()");
+
+        float networkFunctionStartTime = Time.time;
+        
         WWWForm form = new WWWForm();
 
         form.AddField("gID", GlobalData.instance.currentGameID);
         form.AddField("username", dbUsername);
         form.AddField("password", dbPassword);
 
-        WWW www = new WWW("http://" + serverAddress + "receiveCmd.php", form);
+        WWW www = new WWW(serverAddress + "receiveCmd.php", form);
 
         yield return www;
+
+        //ServerCallTime(networkFunctionStartTime, "ReceiveData()");
 
         if (www.error == null)
         {
@@ -129,15 +148,21 @@ public class NetworkController : MonoBehaviour {
 
     public IEnumerator RecieveTurn()
     {
+        //Debug.Log("RecieveTurn()");
+
+        float networkFunctionStartTime = Time.time;
+        
         WWWForm form = new WWWForm();
 
         form.AddField("gID", GlobalData.instance.currentGameID);
         form.AddField("username", dbUsername);
         form.AddField("password", dbPassword);
 
-        WWW www = new WWW("http://" + serverAddress + "receiveTurn.php", form);
+        WWW www = new WWW(serverAddress + "receiveTurn.php", form);
 
         yield return www;
+
+        //ServerCallTime(networkFunctionStartTime, "ReceiveTurn()");
 
         if (www.error == null)
         {
@@ -148,6 +173,12 @@ public class NetworkController : MonoBehaviour {
         {
             Debug.LogError("WWW did not receive! " + www.error);
         }
+    }
+
+    public void ServerCallTime(float startTime, string functionName)
+    {
+        float duration = Time.time - startTime;
+        Debug.Log("Server function: " + functionName + " took " + duration + " seconds to complete");
     }
 }
 
