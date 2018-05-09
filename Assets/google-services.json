@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "1022735723273",
+    "firebase_url": "https://sports-bowl-private-alpha.firebaseio.com",
+    "project_id": "sports-bowl-private-alpha",
+    "storage_bucket": "sports-bowl-private-alpha.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1022735723273:android:ddcbb6ebb80b96c8",
+        "android_client_info": {
+          "package_name": "com.HomeCookedGames.SportsBowl"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1022735723273-j96vpb2b6harrdee0a500aeueljio266.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC40Ao70uEDNaujeOshcZLKTalS1rwOExo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

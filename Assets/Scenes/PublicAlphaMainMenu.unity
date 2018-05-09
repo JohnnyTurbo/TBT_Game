@@ -3665,7 +3665,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &900910586
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3927,8 +3927,8 @@ Canvas:
   m_GameObject: {fileID: 984010399}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
-  m_Camera: {fileID: 0}
+  m_RenderMode: 1
+  m_Camera: {fileID: 232649428}
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
@@ -4337,11 +4337,11 @@ MonoBehaviour:
     m_BestFit: 0
     m_MinSize: 6
     m_MaxSize: 110
-    m_Alignment: 3
+    m_Alignment: 6
     m_AlignByGeometry: 0
     m_RichText: 1
     m_HorizontalOverflow: 0
-    m_VerticalOverflow: 0
+    m_VerticalOverflow: 1
     m_LineSpacing: 1
   m_Text: ERROR TEXT WILL GO HERE
 --- !u!222 &1044469120
@@ -5883,7 +5883,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1370716375
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6157,9 +6157,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1422494043}
   - component: {fileID: 1422494042}
-  - component: {fileID: 1422494044}
   - component: {fileID: 1422494045}
   - component: {fileID: 1422494046}
+  - component: {fileID: 1422494044}
   m_Layer: 0
   m_Name: MainMenuController
   m_TagString: Untagged
@@ -6223,7 +6223,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1422494041}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 82b283ef75f217345993ae1dab8cc139, type: 3}
+  m_Script: {fileID: 11500000, guid: e3bdaa7af3217ba42820387a50fd8c4f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!328 &1422494045
@@ -6293,6 +6293,7 @@ MonoBehaviour:
   serverAddress: 
   hasSeenIntroVid: 0
   hasPlayedTutorial: 0
+  deviceToken: 
 --- !u!1001 &1494967895
 Prefab:
   m_ObjectHideFlags: 0

@@ -14,6 +14,7 @@ public class GlobalData : MonoBehaviour {
     public string teamStr;
     public string serverAddress;
     public bool hasSeenIntroVid, hasPlayedTutorial;
+    public string deviceToken;
 
     void Awake()
     {

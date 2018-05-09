@@ -68,6 +68,7 @@ public class NetworkController : MonoBehaviour {
         form.AddField("username", newUsername);
         form.AddField("pin", pin);
         form.AddField("email", emailAddress);
+        form.AddField("deviceToken", GlobalData.instance.deviceToken);
 
         WWW www = new WWW(serverAddress + "createAccount.php", form);
 
@@ -108,7 +109,7 @@ public class NetworkController : MonoBehaviour {
 
         if (www.error == null)
         {
-            //Debug.Log("WWW Sent! " + www.text);
+            Debug.Log("WWW Sent! " + www.text);
         }
         else
         {

@@ -192,7 +192,7 @@ public class MainMenuController : MonoBehaviour {
             GlobalData.instance.playerID = playerID;
             loginCanvas.SetActive(false);
             userHomepageCanvas.SetActive(true);
-            StartCoroutine(PopulateUserHomepage());
+            //StartCoroutine(PopulateUserHomepage());
         }
         else
         {
@@ -564,5 +564,10 @@ public class MainMenuController : MonoBehaviour {
         confirmButton.interactable = false;
         teamStr = "";
         numPlayersOnTeam = 0;
+    }
+
+    public void SetErrorText(string newErrorText)
+    {
+        errorText.text = newErrorText;
     }
 }
