@@ -7,6 +7,9 @@ using UnityEngine.Video;
 
 public class MainMenuController : MonoBehaviour {
 
+	//OSX edit
+    //W10 edit
+
     private static MainMenuController _instance;
 
     public static MainMenuController instance;
@@ -23,13 +26,14 @@ public class MainMenuController : MonoBehaviour {
     readonly int maxNumPlayersOnTeam = 3;
 
     int numPlayersOnTeam = 0;
-    string teamStr = "", gameIdToJoin = "";
+    string teamStr = "", gameIdToJoin = "", otherUsername = "";
     Sprite SelectionCircleStartSpr;
-    InputField usernameIF, pinIF, newUsernameIF, newPinIF, newPinConfIF, newEmailIF, gameIDIF;
+    InputField usernameIF, pinIF, newUsernameIF, newPinIF, newPinConfIF, newEmailIF, gameIDIF, otherUsernameIF;
     Text errorText, serverErrorText;
     GameObject loadingScreen, usersGamesContainer;
     Button tryAgainButton, playButton, tutorialButton;
-    
+    Toggle staySignedInToggle;
+
     VideoPlayer introVP;
 
     delegate void tryAgainFunction();
@@ -52,6 +56,9 @@ public class MainMenuController : MonoBehaviour {
 
     void Start()
     {
+
+        //PlayerPrefs.DeleteAll();
+
         //Find needed objects
 
         errorText = mainMenuCanvas.transform.Find("ErrorText").GetComponent<Text>();
@@ -61,6 +68,7 @@ public class MainMenuController : MonoBehaviour {
 
         usernameIF = loginCanvas.transform.Find("UsernameIF").GetComponent<InputField>();
         pinIF = loginCanvas.transform.Find("PinIF").GetComponent<InputField>();
+        staySignedInToggle = loginCanvas.transform.Find("StaySignedInToggle").GetComponent<Toggle>();
 
         newUsernameIF = createUserCanvas.transform.Find("NewUsernameIF").GetComponent<InputField>();
         newPinIF = createUserCanvas.transform.Find("NewPinIF").GetComponent<InputField>();
@@ -68,7 +76,9 @@ public class MainMenuController : MonoBehaviour {
         newEmailIF = createUserCanvas.transform.Find("NewEmailIF").GetComponent<InputField>();
 
         gameIDIF = userHomepageCanvas.transform.Find("GameIDIF").GetComponent<InputField>();
-        usersGamesContainer = userHomepageCanvas.transform.Find("UsersGamesContainer").gameObject;
+        usersGamesContainer = userHomepageCanvas.transform.Find("ScrollView").Find("UsersGamesContainer").gameObject;
+
+        otherUsernameIF = createGameCanvas.transform.Find("OtherUsernameIF").GetComponent<InputField>();
 
         loadingScreen = loadingScreenCanvas.transform.Find("LoadingScreen").gameObject;
         serverErrorText = loadingScreen.transform.Find("ServerErrorText").GetComponent<Text>();
@@ -112,7 +122,18 @@ public class MainMenuController : MonoBehaviour {
     {
         Debug.Log("OnButtonPlay()");
         mainOptionsCanvas.SetActive(false);
-        loginCanvas.SetActive(true);
+        if (PlayerPrefs.GetString("lastLoggedInUser") != "")
+        {
+            string curUsername = PlayerPrefs.GetString("lastLoggedInUser");
+            string curPIN = PlayerPrefs.GetString("lastUserPIN");
+            StartCoroutine(NetworkController.AccountLogin(curUsername, curPIN));
+        }
+        else
+        {
+            PlayerPrefs.SetString("lastLoggedInUser", "");
+            PlayerPrefs.SetString("lastUserPIN", "");
+            loginCanvas.SetActive(true);
+        }
     }
 
     public void OnButtonTutorial()
@@ -185,14 +206,32 @@ public class MainMenuController : MonoBehaviour {
         }
         else if (messageFromServer.StartsWith("Login success!"))
         {
-            usernameIF.text = "";
-            pinIF.text = "";
+            if (PlayerPrefs.GetString("lastLoggedInUser") == "")
+            {
+                Debug.Log("Player Prefs not saved");
+                //Check if the "Stay Signed In" Toggle is checked
+                if (staySignedInToggle.isOn == true)
+                {
+                    PlayerPrefs.SetString("lastLoggedInUser", usernameIF.text);
+                    PlayerPrefs.SetString("lastUserPIN", pinIF.text);
+                }
+                else
+                {
+                    PlayerPrefs.SetString("lastLoggedInUser", "");
+                    PlayerPrefs.SetString("lastUserPIN", "");
+                }
+
+                usernameIF.text = "";
+                pinIF.text = "";
+                loginCanvas.SetActive(false);
+            }
+            
             string playerID = messageFromServer.Remove(0, 14);
             Debug.Log("Login Success and mfs = " + playerID);
             GlobalData.instance.playerID = playerID;
-            loginCanvas.SetActive(false);
+
             userHomepageCanvas.SetActive(true);
-            //StartCoroutine(PopulateUserHomepage());
+            StartCoroutine(PopulateUserHomepage());
         }
         else
         {
@@ -291,8 +330,11 @@ public class MainMenuController : MonoBehaviour {
     }
 
     /// <summary>
-    /// String returned from server uses syntxax: gameID,gamePlayerID,movesBehind,version,status,whoseTurn|gameID...
-    /// String index reference                    0      1            2           3       4      5        |0
+    /// String returned from server: 
+    /// 
+    /// gameID,gamePlayerID,movesBehind,version,status,whoseTurn,gameBoardInfo,gameUnitsInfo,lastCMDIndex
+    /// 0      1            2           3       4      5         6             7             8
+    /// 
     /// </summary>
     /// <returns></returns>
     IEnumerator PopulateUserHomepage()
@@ -312,15 +354,28 @@ public class MainMenuController : MonoBehaviour {
         if(fetchUserGames.error == null)
         {
 
-            //Debug.Log("Users games: " + fetchUserGames.text);
+            Debug.Log("Users games: " + fetchUserGames.text);
 
             string[] userGamesInfo = fetchUserGames.text.Split('|');
 
-            for (int i = 0; i < userGamesInfo.Length; i++)
+            float height = userGamesInfo.Length * 175;
+            RectTransform ugcRect = usersGamesContainer.GetComponent<RectTransform>();
+            ugcRect.sizeDelta = new Vector2(1300, height);
+
+            for (int i = userGamesInfo.Length - 1, j = 0; i >= 0 ; i--, j++)
             {
                 string[] gameStringComponents = userGamesInfo[i].Split(',');
+                string gameID = gameStringComponents[0];
                 string gamePlayerID = (gameStringComponents[1] == "0") ? "1" : "2";
+                string movesBehind = gameStringComponents[2];
+                string gameVersion = gameStringComponents[3];
+                string gameStatus = gameStringComponents[4];
                 string whoseTurn = (gameStringComponents[5] == "0") ? "1" : "2";
+                /*
+                string gameBoardInfo = gameStringComponents[6];
+                string gameUnitsInfo = gameStringComponents[7];
+                string lastCmdIndex = gameStringComponents[8];
+                */
                 /*
                 Debug.Log("Player with global ID: " + GlobalData.instance.playerID + " is Player: " + gamePlayerID +
                           " in game with ID: " + gameStringComponents[0] + ". And they are " + gameStringComponents[2] +
@@ -328,76 +383,64 @@ public class MainMenuController : MonoBehaviour {
                           gameStringComponents[4] + ", and it is player " + whoseTurn + "'s turn.");
                 */
                 GameObject gameButton;
+                string buttonText;
 
-                switch (gameStringComponents[4])
+                switch (gameStatus)
                 {
                     case "0":
                         gameButton = pendingGameButtonPrefab;
+                        buttonText = "New Game!";
                         break;
 
                     case "1":
                         gameButton = activeGameButtonPrefab;
+                        string turnText = (gamePlayerID == whoseTurn) ? "Your Turn" : "Opponent's Turn";
+                        buttonText = "Game ID: " + gameID + " - " + turnText;
                         break;
 
                     case "2":
                         gameButton = pastGameButtonPrefab;
+                        buttonText = "Game Over";
                         break;
 
                     default:
                         Debug.LogError("Error: cannot load gameID: " + gameStringComponents[i] + " because it is in unkown state: " +
-                                        gameStringComponents[4]);
+                                        gameStatus);
                         gameButton = null;
+                        buttonText = "";
                         break;
                 }
-                Vector3 newButtonPos = new Vector3(0, (i * -175f) - 255f, 0f);
-
+                
+                Vector3 newButtonPos = new Vector3(0, (j * -175), 0f);
+                //Debug.Log("New Button Pos: " + newButtonPos.ToString());
                 GameObject newGameButtonGO = GameObject.Instantiate(gameButton, usersGamesContainer.transform);
+                
                 Button newGameButton = newGameButtonGO.GetComponent<Button>();
                 Text newButtonText = newGameButtonGO.transform.Find("Text").GetComponent<Text>();
                 newGameButtonGO.transform.localPosition = newButtonPos;
 
-                string turnText = (gameStringComponents[1] == gameStringComponents[5]) ? "Your Turn" : "Opponent's Turn";
-                newButtonText.text = "Game ID: " + gameStringComponents[0] + " - " + turnText;
-                newGameButton.onClick.AddListener(() => LoadGame(gameStringComponents[0]));                
-            }
-
-            
-
-            /*
-            string strToParse = fetchUserGames.text;
-            string[] usersGames = strToParse.Split('|');
-
-            for (int i = 0; i < usersGames.Length - 1; i++)
-            {
-                string[] gameStringComponents = usersGames[i].Split(',');
-                string gamePlayerID = (gameStringComponents[1] == "0") ? "1" : "2";
-
-                WWWForm getGameInfo = new WWWForm();
-
-                getGameInfo.AddField("username", dbUsername);
-                getGameInfo.AddField("password", dbPassword);
-                getGameInfo.AddField("gameID", gameStringComponents[0]);
-
-                WWW fetchGameInfo = new WWW(serverAddress + "fetchGameInfo.php", getGameInfo);
-
-                yield return fetchGameInfo;
-
-                if (fetchGameInfo.error == null)
+                newButtonText.text = buttonText;
+                switch (gameStatus)
                 {
-                    string[] gameInfoComponents = fetchGameInfo.text.Split('|');
-                    string whoseTurn = (gameInfoComponents[1] == "0") ? "1" : "2";
-                    Debug.Log("Player with global ID: " + GlobalData.instance.playerID + " is Player: " + gamePlayerID +
-                              " in game with ID: " + gameStringComponents[0] + ". And they are " + gameStringComponents[2] +
-                              " moves behind. The game's version is: " + gameInfoComponents[0] + ", the status is: " +
-                              gameInfoComponents[1] + ", and it is player " + whoseTurn + "'s turn");
+                    case "0":
+                        newGameButton.onClick.AddListener(() => AcceptGame(gameID));
+                        Debug.Log("case0");
+                        break;
+
+                    case "1":
+                        newGameButton.onClick.AddListener(() => LoadGame(gameStringComponents));
+                        break;
+
+                    case "2":
+                        //Show Game Stats
+                        break;
+
+                    default:
+
+                        break;
                 }
-                else
-                {
-                    Debug.LogError("Could not fetch game data.\n" + fetchGameInfo.error);
-                    errorText.text = "Could not fetch game data, try again later.";
-                }
+                                
             }
-            */
         }
         else
         {
@@ -408,9 +451,31 @@ public class MainMenuController : MonoBehaviour {
         NetworkController.instance.ServerCallTime(startTime, "PopulateUserHomepage");
     }
 
-    void LoadGame(string gameID)
+    void LoadGame(string[] gameAttributes)
     {
+        string gameID = gameAttributes[0];
+        string gamePlayerID = (gameAttributes[1] == "0") ? "1" : "2";
+        string movesBehind = gameAttributes[2];
+        string gameVersion = gameAttributes[3];
+        string gameStatus = gameAttributes[4];
+        string whoseTurn = (gameAttributes[5] == "0") ? "1" : "2";
+        string gameBoardInfo = gameAttributes[6];
+        string gameUnitsInfo = gameAttributes[7];
+        string lastCmdIndex = gameAttributes[8];
+
         Debug.Log("LoadGame(string " + gameID + ")");
+
+        GlobalData.instance.SetupLoadGameDataHelper(gamePlayerID, gameID, lastCmdIndex, gameUnitsInfo);
+
+        SceneManager.LoadScene("Scene2");
+    }
+
+    public void OnButtonNewGame()
+    {
+        Debug.Log("OnButtonNewGame()");
+
+        userHomepageCanvas.SetActive(false);
+        createGameCanvas.SetActive(true);
     }
 
     public void OnButtonCreateGame()
@@ -419,7 +484,9 @@ public class MainMenuController : MonoBehaviour {
 
         tryAgainButtonHandler = OnButtonCreateGame;
 
-        userHomepageCanvas.SetActive(false);
+        otherUsername = otherUsernameIF.text;
+
+        createGameCanvas.SetActive(false);
         draftTeamCanvas.SetActive(true);
         //StartCoroutine(CreateGame());
     }
@@ -446,6 +513,13 @@ public class MainMenuController : MonoBehaviour {
         }
     }
 
+    void AcceptGame(string gameID)
+    {
+        gameIdToJoin = gameID;
+        userHomepageCanvas.SetActive(false);
+        draftTeamCanvas.SetActive(true);
+    }
+
     public void OnButtonTryAgain()
     {
         Debug.Log("OnButtonTryAgain()");
@@ -458,24 +532,36 @@ public class MainMenuController : MonoBehaviour {
 
     IEnumerator JoinGame()
     {
-        GlobalData.instance.inGamePlayerID = 0;
+        //Debug.Log("JoinGame()");
+
+        //GlobalData.instance.inGamePlayerID = 0;
 
         WWWForm dbCredentials = new WWWForm();
         dbCredentials.AddField("username", dbUsername);
         dbCredentials.AddField("password", dbPassword);
         dbCredentials.AddField("playerID", GlobalData.instance.playerID);
-        Debug.Log("PID = " + GlobalData.instance.playerID);
+        dbCredentials.AddField("boardSize", "8X7");
+        dbCredentials.AddField("otherUsername", otherUsername);
+
+        //Debug.Log("PID = " + GlobalData.instance.playerID);
+
         WWW newGameRequest = new WWW(serverAddress + "createNewGame.php", dbCredentials);
         yield return newGameRequest;
 
         if (newGameRequest.error == null)
         {
-            Debug.Log("New game created! ");
+            /*
+            Debug.Log("New game created!");
             int convertedInt;
             int.TryParse(newGameRequest.text, out convertedInt);
+
             GlobalData.instance.currentGameID = convertedInt;
+
             Debug.Log("GameID is: " + convertedInt.ToString());
-            //Debug.Log("GameID is: " + newGameRequest.text);
+            Debug.Log("GameID is: " + newGameRequest.text);
+            */
+            GlobalData.instance.SetupLoadGameDataHelper("1", newGameRequest.text, "2", teamStr);
+            NetworkController.instance.SendStringToDB("&grd|" + 8 + "," + 7, 0, newGameRequest.text);
             SceneManager.LoadScene("Scene2");
         }
         else
@@ -488,10 +574,15 @@ public class MainMenuController : MonoBehaviour {
 
     IEnumerator JoinGame(string gameID)
     {
-        GlobalData.instance.inGamePlayerID = 1;
+        Debug.Log("JoinGame(" + gameID + ")");
+
+        //GlobalData.instance.inGamePlayerID = 1;
+        /*
         int convertedInt;
         int.TryParse(gameID, out convertedInt);
         GlobalData.instance.currentGameID = convertedInt;
+        */
+
         WWWForm gameJoinID = new WWWForm();
         gameJoinID.AddField("gID", gameID);
         gameJoinID.AddField("username", dbUsername);
@@ -505,6 +596,7 @@ public class MainMenuController : MonoBehaviour {
         {
             Debug.Log("Joining game with ID: " + gameID);
             Debug.Log("From Server: " + attemptGameJoin.text);
+            GlobalData.instance.SetupLoadGameDataHelper("2", gameID, "0", teamStr);
             SceneManager.LoadScene("Scene2");
         }
         else
@@ -542,7 +634,7 @@ public class MainMenuController : MonoBehaviour {
 
     public void OnConfirmButtonSelect()
     {
-        GlobalData.instance.teamStr = teamStr;
+        //GlobalData.instance.teamStr = teamStr;
         draftTeamCanvas.SetActive(false);
         loadingScreen.SetActive(true);
         if (gameIdToJoin == "")
@@ -569,5 +661,32 @@ public class MainMenuController : MonoBehaviour {
     public void SetErrorText(string newErrorText)
     {
         errorText.text = newErrorText;
+    }
+
+    public void OnButtonNotify()
+    {
+        StartCoroutine(Notify());
+    }
+
+    public void OnButtonClearData()
+    {
+        PlayerPrefs.DeleteAll();
+    }
+
+    IEnumerator Notify()
+    {
+        WWW notificationTest = new WWW(serverAddress + "testPushNotification.php");
+
+        yield return notificationTest;
+
+        if(notificationTest.error == null)
+        {
+            Debug.Log("PING!");
+            Debug.Log("Note From serv: " + notificationTest.text);
+        }
+        else
+        {
+            Debug.LogError("Error: " + notificationTest.error);
+        }
     }
 }

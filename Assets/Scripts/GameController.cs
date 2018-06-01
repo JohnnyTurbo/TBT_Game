@@ -35,10 +35,12 @@ public class GameController : MonoBehaviour {
 
     public static readonly Vector3 farAway = new Vector3(1000f, 1000f, 1000f);
 
-    int indexOfLastCommand = 0;
+    int indexOfLastCommand;
     int unitIndex = 0;
     int camPositionIndex = 1;
     bool isCameraMoving = false;
+
+    string teamStr, gameID;
 
     string thisTurnCMDs = "";
     GameObject actionCanvas, statCanvas, messageCanvas, generalActionCanvas, debugCanvas;
@@ -112,6 +114,51 @@ public class GameController : MonoBehaviour {
         //InitializeMap(0 == GlobalData.instance.playerID);
         //SpawnUnits();
 
+        if (!isOnMobile)
+        {
+            MoveCameraLeftButtonSelect(3.5f);
+        }
+        else
+        {
+            Camera.main.transform.position = new Vector3(6.5f, 18, 7);
+            Camera.main.transform.rotation = Quaternion.Euler(90, -90, 0);
+            Camera.main.orthographic = true;
+            Camera.main.orthographicSize = 7.7f;
+            generalActionCanvas.transform.Find("CamMoveIcon").gameObject.SetActive(false);
+        }
+
+        string[] gameData;
+
+        if(GlobalData.instance.GetCurGameData(out gameData))
+        {
+            Debug.Log("Game has data: " + gameData[0] + ", " + gameData[1] + ", " + gameData[2] + ", " + gameData[3]);
+            teamStr = gameData[3];
+            gameID = gameData[1];
+            playerTeamID = (gameData[0] == "1") ? 0 : 1;
+            nextPlayerID = (gameData[0] == "1") ? 1 : 0;
+
+            int.TryParse(gameData[2], out indexOfLastCommand);
+
+            Debug.Log("indexOfLastCommand = " + indexOfLastCommand);
+
+            InitializeMap();
+            if (gameData[2] == "0")
+            {
+                //New Game
+                curState = GameState.EnemyTurn;
+                StartCoroutine(WaitForMyTurn());
+            }
+            
+        }
+
+        else
+        {
+            Debug.LogError("Game has no data!");
+        }
+
+
+
+        /*
         if(GlobalData.instance.inGamePlayerID == 0)
         {
             p1Label.gameObject.SetActive(true);
@@ -129,8 +176,8 @@ public class GameController : MonoBehaviour {
             }
             playerTeamID = 0;
             nextPlayerID = 1;
-            indexOfLastCommand+=2;
-            InitializeMap(true);
+            //indexOfLastCommand+=2;
+            //InitializeMap(true);
             curState = GameState.EnemyTurn;
             StartCoroutine(WaitForMyTurn());
         }
@@ -158,7 +205,7 @@ public class GameController : MonoBehaviour {
         debugGameID.text = "GameID: " + GlobalData.instance.currentGameID;
 
         cursor = Instantiate(cursor, farAway, Quaternion.identity);
-        
+        */
     }
 
     void Update()
@@ -350,6 +397,7 @@ public class GameController : MonoBehaviour {
         }
     }
 
+    /*
     IEnumerator JoinGame()
     {
         CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.ReceiveData());
@@ -374,10 +422,12 @@ public class GameController : MonoBehaviour {
 
         InitializeMap(false);
     }
+    */
 
     IEnumerator GetCommands()
-    { 
-        CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.ReceiveData());
+    {
+        Debug.Log("GetCommands()");
+        CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.ReceiveData(gameID));
         yield return cd.coroutine;
         string strToParse;
         string[] subStrings;
@@ -407,7 +457,7 @@ public class GameController : MonoBehaviour {
                     cmdParts = cmdToProc[1].Split(',');
                     gridSizeX = int.Parse(cmdParts[0]);
                     gridSizeY = int.Parse(cmdParts[1]);
-                    InitializeMap(false);
+                    InitializeMap();
                     break;
 
                 case "spn":
@@ -415,7 +465,7 @@ public class GameController : MonoBehaviour {
                     cmdParts = cmdToProc[2].Split(',');
                     foreach (string unitTypeStr in cmdParts)
                     {
-                        Debug.Log(unitTypeStr);
+                        //Debug.Log(unitTypeStr);
                         int unitType = int.Parse(unitTypeStr);
                         SpawnUnit(unitType, teamID);
                     }
@@ -465,27 +515,19 @@ public class GameController : MonoBehaviour {
         }
     }
 
-    void InitializeMap(bool isCreator)
+    void InitializeMap()
     {
-        Debug.Log("INIT MAP");
-        //tileList = new List<GameObject>();
+        Debug.Log("InitializeMap()");
+        
+
         IntVector2 gridSize = new IntVector2();
 
-        if (isCreator)
-        {
-            //Debug.Log("isCreator == true");
-            gridSize.x = gridSizeX;
-            gridSize.y = gridSizeY;
 
-            NetworkController.instance.SendStringToDB("&grd|" + gridSize.x + "," + gridSize.y, 0);
-        }
-        else
-        {
-            //Debug.Log("isCreator == false");
-            //receive grid size from server
-            gridSize.x = gridSizeX;
-            gridSize.y = gridSizeY;
-        }
+        //Debug.Log("isCreator == true");
+        gridSize.x = gridSizeX;
+        gridSize.y = gridSizeY;
+
+        int numTiles = 0;
 
         mapGrid = new TileController[gridSize.x, gridSize.y];
 
@@ -498,10 +540,11 @@ public class GameController : MonoBehaviour {
                 GameObject newTile = Instantiate(tileToBeSpawned, newTileLoc, Quaternion.identity);
                 newTile.GetComponent<TileController>().curCoords = new IntVector2(x, y);
                 mapGrid[x, y] = newTile.GetComponent<TileController>();
-                //tileList.Add(newTile);
+                numTiles++;
             }
         }
-        //Debug.Log(tileList.Count + " tiles on map");
+
+        Debug.Log(numTiles + " tiles on map.");
 
         //SpawnUnits();
         StartCoroutine(SendUnitsToServer());
@@ -509,10 +552,11 @@ public class GameController : MonoBehaviour {
 
     IEnumerator SendUnitsToServer()
     {
-        //Debug.Log("Sending Units to Server");
-        string strToSend = "&spn|" + GlobalData.instance.inGamePlayerID + "|" + GlobalData.instance.teamStr;
+        Debug.Log("Sending Units to Server");
+
+        string strToSend = "&spn|" + playerTeamID + "|" + teamStr;
         Debug.Log("Sending unit string '" + strToSend + "' to server.");
-        Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(strToSend, 1));
+        Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(strToSend, 1, gameID));
         yield return sendCMD;
         //Debug.Log("units sent to server: " + strToSend);
         Coroutine getCmd = StartCoroutine(GetCommands());
@@ -777,20 +821,23 @@ public class GameController : MonoBehaviour {
 
     IEnumerator WaitForMyTurn()
     {
+        Debug.Log("WaitForMyTurn()");
         int nextID = nextPlayerID;
 
         //Debug.Log("MyID: " + playerTeamID + ", nextPlayerID: " + nextPlayerID);
 
         //NetworkController.instance.SendStringToDB(thisTurnCMDs, nextPlayerID);
-        Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID));
+        Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID, gameID));
         thisTurnCMDs = "";
 
         yield return sendCMD;
 
         while (nextID != playerTeamID) {
 
-            CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.RecieveTurn());
+            CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.RecieveTurn(gameID));
             yield return cd.coroutine;
+
+            //Debug.Log(cd.result);
 
             //string helperStr = (string)cd.result;
             nextID = int.Parse((string)cd.result);

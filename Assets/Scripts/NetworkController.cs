@@ -20,9 +20,9 @@ public class NetworkController : MonoBehaviour {
         serverAddress = "http://homecookedgames.com/sbphp/scripts/";
     }
 
-	public void SendStringToDB(string dataToSend, int nextPlayerID)
+	public void SendStringToDB(string dataToSend, int nextPlayerID, string gameID)
     {
-        StartCoroutine(SendData(dataToSend, nextPlayerID));
+        StartCoroutine(SendData(dataToSend, nextPlayerID, gameID));
     }
 
     public static IEnumerator AccountLogin(string user, string pin)
@@ -87,7 +87,7 @@ public class NetworkController : MonoBehaviour {
         }
     }
 
-    public IEnumerator SendData(string dataToSend, int nextPlayerID)
+    public IEnumerator SendData(string dataToSend, int nextPlayerID, string gameID)
     {
         //Debug.Log("SendData(" + dataToSend + ", " + nextPlayerID + ")");
 
@@ -96,7 +96,8 @@ public class NetworkController : MonoBehaviour {
         WWWForm form = new WWWForm();
         
         form.AddField("newCmd", dataToSend);
-        form.AddField("gID", GlobalData.instance.currentGameID);
+        form.AddField("gID", gameID);
+        form.AddField("pID", GlobalData.instance.playerID);
         form.AddField("whoTurn", nextPlayerID);
         form.AddField("username", dbUsername);
         form.AddField("password", dbPassword);
@@ -118,7 +119,7 @@ public class NetworkController : MonoBehaviour {
     }
 
 
-    public IEnumerator ReceiveData()
+    public IEnumerator ReceiveData(string gameID)
     {
         //Debug.Log("ReceiveData()");
 
@@ -126,7 +127,7 @@ public class NetworkController : MonoBehaviour {
         
         WWWForm form = new WWWForm();
 
-        form.AddField("gID", GlobalData.instance.currentGameID);
+        form.AddField("gID", gameID);
         form.AddField("username", dbUsername);
         form.AddField("password", dbPassword);
 
@@ -147,7 +148,7 @@ public class NetworkController : MonoBehaviour {
         }
     }
 
-    public IEnumerator RecieveTurn()
+    public IEnumerator RecieveTurn(string gameID)
     {
         //Debug.Log("RecieveTurn()");
 
@@ -155,7 +156,7 @@ public class NetworkController : MonoBehaviour {
         
         WWWForm form = new WWWForm();
 
-        form.AddField("gID", GlobalData.instance.currentGameID);
+        form.AddField("gID", gameID);
         form.AddField("username", dbUsername);
         form.AddField("password", dbPassword);
 
