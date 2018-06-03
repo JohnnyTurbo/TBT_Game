@@ -126,13 +126,18 @@ public class GameController : MonoBehaviour {
             Camera.main.orthographicSize = 7.7f;
             generalActionCanvas.transform.Find("CamMoveIcon").gameObject.SetActive(false);
         }
+        StartCoroutine(SetupGame());
+    }
 
+    IEnumerator SetupGame()
+    {
         string[] gameData;
 
-        if(GlobalData.instance.GetCurGameData(out gameData))
+        if (GlobalData.instance.GetCurGameData(out gameData))
         {
             Debug.Log("Game has data: " + gameData[0] + ", " + gameData[1] + ", " + gameData[2] + ", " + gameData[3]);
             teamStr = gameData[3];
+            Debug.Log("GameUnitsInfo: " + teamStr);
             gameID = gameData[1];
             playerTeamID = (gameData[0] == "1") ? 0 : 1;
             nextPlayerID = (gameData[0] == "1") ? 1 : 0;
@@ -141,71 +146,29 @@ public class GameController : MonoBehaviour {
 
             Debug.Log("indexOfLastCommand = " + indexOfLastCommand);
 
-            InitializeMap();
-            if (gameData[2] == "0")
+
+            if (gameData[2] == "2")
             {
                 //New Game
+                InitializeMap();
+                //StartCoroutine(SendUnitsToServer());
+                string[] teamUnits = teamStr.Split('&');
+                ProcessCommand(teamUnits[0].Split('!'));
                 curState = GameState.EnemyTurn;
                 StartCoroutine(WaitForMyTurn());
-            }
-            
-        }
 
+            }
+            else
+            {
+                //StartCoroutine(SendUnitsToServer());
+                StartCoroutine(GetCommands());
+            }
+        }
         else
         {
             Debug.LogError("Game has no data!");
         }
-
-
-
-        /*
-        if(GlobalData.instance.inGamePlayerID == 0)
-        {
-            p1Label.gameObject.SetActive(true);
-            if (!isOnMobile)
-            {
-                MoveCameraLeftButtonSelect(3.5f);
-            }
-            else
-            {
-                Camera.main.transform.position = new Vector3(6.5f, 18, 7);
-                Camera.main.transform.rotation = Quaternion.Euler(90, -90, 0);
-                Camera.main.orthographic = true;
-                Camera.main.orthographicSize = 7.7f;
-                generalActionCanvas.transform.Find("CamMoveIcon").gameObject.SetActive(false);
-            }
-            playerTeamID = 0;
-            nextPlayerID = 1;
-            //indexOfLastCommand+=2;
-            //InitializeMap(true);
-            curState = GameState.EnemyTurn;
-            StartCoroutine(WaitForMyTurn());
-        }
-        else
-        {
-            p2Label.gameObject.SetActive(true);
-            if (!isOnMobile)
-            {
-                MoveCameraRightButtonSelect(3.5f);
-            }
-            else
-            {
-                Camera.main.transform.position = new Vector3(6.5f, 18, 7);
-                Camera.main.transform.rotation = Quaternion.Euler(90, -90, 0);
-                Camera.main.orthographic = true;
-                Camera.main.orthographicSize = 7.7f;
-                generalActionCanvas.transform.Find("CamMoveIcon").gameObject.SetActive(false);
-            }
-            playerTeamID = 1;
-            nextPlayerID = 0;
-            StartCoroutine(GetCommands());
-            curState = GameState.PlayerSelectTile;
-        }
-
-        debugGameID.text = "GameID: " + GlobalData.instance.currentGameID;
-
-        cursor = Instantiate(cursor, farAway, Quaternion.identity);
-        */
+        yield return null;
     }
 
     void Update()
@@ -441,77 +404,86 @@ public class GameController : MonoBehaviour {
         while(indexOfLastCommand < subStrings.Length)
         {
             string[] cmdToProc = subStrings[indexOfLastCommand].Split('|');
-            string[] cmdParts;
-            int unitID;
 
-            switch (cmdToProc[0])
-            {
-                //Message
-                case "msg":
-                    //Debug.Log("Game Start");
-                    break;
-
-                //Grid Size
-                case "grd":
-                    //Debug.Log("Setting grid size");
-                    cmdParts = cmdToProc[1].Split(',');
-                    gridSizeX = int.Parse(cmdParts[0]);
-                    gridSizeY = int.Parse(cmdParts[1]);
-                    InitializeMap();
-                    break;
-
-                case "spn":
-                    int teamID = int.Parse(cmdToProc[1]);
-                    cmdParts = cmdToProc[2].Split(',');
-                    foreach (string unitTypeStr in cmdParts)
-                    {
-                        //Debug.Log(unitTypeStr);
-                        int unitType = int.Parse(unitTypeStr);
-                        SpawnUnit(unitType, teamID);
-                    }
-                    break;
-
-                //Movement
-                case "mvt":
-                    //cmdParts = cmdToProc[1]
-                    unitID = int.Parse(cmdToProc[1]);
-                    cmdParts = cmdToProc[2].Split(',');
-                    int newXLoc = int.Parse(cmdParts[0]);
-                    int newYLoc = int.Parse(cmdParts[1]);
-                    UnitController unitToMove = unitsInGame[numTeams][unitID];
-                    mapGrid[newXLoc, newYLoc].AttemptUnitMove(unitToMove);
-                    break;
-
-                //Attack
-                case "atk":
-                    unitID = int.Parse(cmdToProc[1]);
-                    int newHealth = int.Parse(cmdToProc[2]);
-                    UnitController affectedUnit = unitsInGame[numTeams][unitID];
-
-                    Debug.Log("atk, numTeams: " + numTeams + ", unitID: " + unitID);
-
-                    if(newHealth <= 0)
-                    {
-                        //Debug.Log("New Health is less than or equal to zero!");
-                        Destroy(affectedUnit.gameObject);
-                    }
-                    else
-                    {
-                        affectedUnit.unitHealth = newHealth;
-                    }
-                    break;
-
-                //Game Over
-                case "end":
-                    ShowMessage("YOU LOST!", 500);
-                    break;
-
-                default:
-                    Debug.LogError("Error: Unrecognized Command: " + cmdToProc[0]);
-                    break;
-            }
+            ProcessCommand(cmdToProc);
 
             indexOfLastCommand++;
+        }
+    }
+
+    void ProcessCommand(string[] cmdToProc)
+    {
+        string[] cmdParts;
+        int unitID;
+
+        switch (cmdToProc[0])
+        {
+            //Message
+            case "msg":
+                //Debug.Log("Game Start");
+                break;
+
+            //Grid Size
+            case "grd":
+                //Debug.Log("Setting grid size");
+                cmdParts = cmdToProc[1].Split(',');
+                gridSizeX = int.Parse(cmdParts[0]);
+                gridSizeY = int.Parse(cmdParts[1]);
+                InitializeMap();
+                break;
+
+            case "spn":
+                int teamID = int.Parse(cmdToProc[1]);
+                cmdParts = cmdToProc[2].Split('^');
+                foreach (string unitTypeStr in cmdParts)
+                {
+                    Debug.Log(unitTypeStr);
+                    string[] unitSubStr = unitTypeStr.Split('*');
+                    int unitType = int.Parse(unitSubStr[0]);
+                    IntVector2 spawnLoc = new IntVector2(unitSubStr[1], unitSubStr[2]);
+                    SpawnUnit(unitType, teamID, spawnLoc);
+                }
+                //StartCoroutine(UpdateUnitLocations());
+                break;
+
+            //Movement
+            case "mvt":
+                //cmdParts = cmdToProc[1]
+                unitID = int.Parse(cmdToProc[1]);
+                cmdParts = cmdToProc[2].Split(',');
+                int newXLoc = int.Parse(cmdParts[0]);
+                int newYLoc = int.Parse(cmdParts[1]);
+                UnitController unitToMove = unitsInGame[numTeams][unitID];
+                mapGrid[newXLoc, newYLoc].AttemptUnitMove(unitToMove);
+                break;
+
+            //Attack
+            case "atk":
+                unitID = int.Parse(cmdToProc[1]);
+                int newHealth = int.Parse(cmdToProc[2]);
+                UnitController affectedUnit = unitsInGame[numTeams][unitID];
+
+                Debug.Log("atk, numTeams: " + numTeams + ", unitID: " + unitID);
+
+                if (newHealth <= 0)
+                {
+                    //Debug.Log("New Health is less than or equal to zero!");
+                    Destroy(affectedUnit.gameObject);
+                }
+                else
+                {
+                    affectedUnit.unitHealth = newHealth;
+                }
+                break;
+
+            //Game Over
+            case "end":
+                ShowMessage("YOU LOST!", 500);
+                break;
+
+            default:
+                Debug.LogError("Error: Unrecognized Command: " + cmdToProc[0]);
+                break;
         }
     }
 
@@ -547,9 +519,11 @@ public class GameController : MonoBehaviour {
         Debug.Log(numTiles + " tiles on map.");
 
         //SpawnUnits();
-        StartCoroutine(SendUnitsToServer());
+
+        //StartCoroutine(SendUnitsToServer());
     }
 
+    /*
     IEnumerator SendUnitsToServer()
     {
         Debug.Log("Sending Units to Server");
@@ -562,6 +536,7 @@ public class GameController : MonoBehaviour {
         Coroutine getCmd = StartCoroutine(GetCommands());
         yield return getCmd;
     }
+    */
 
     /*
     void SpawnUnits()
@@ -602,12 +577,20 @@ public class GameController : MonoBehaviour {
     }
     */
 
-    void SpawnUnit(int unitType, int teamID /*, IntVector2 location*/)
+    void SpawnUnit(int unitType, int teamID, IntVector2 location)
     {
-        int xLoc = (unitIndex % 3) + 2;
-        int yLoc = (gridSizeY - 1) * teamID;
+        int xLoc, yLoc;
 
-        
+        if (location == IntVector2.coordDownLeft)
+        {
+            xLoc = (unitIndex % 3) + 2;
+            yLoc = (gridSizeY - 1) * teamID;
+        }
+        else
+        {
+            xLoc = location.x;
+            yLoc = location.y;
+        }
 
         GameObject newUnit = Instantiate(unitTypes[unitType], Vector3.zero, Quaternion.identity);
         string unitSpriteToLoad = "";
@@ -654,6 +637,7 @@ public class GameController : MonoBehaviour {
 
         newUnitController.unitTeamID = teamID;
         newUnitController.unitIndex = unitIndex;
+        newUnitController.numUnitType = unitType;
         if (!isOnMobile)
         {
             newUnitController.RotateUnitSprite();
@@ -740,8 +724,31 @@ public class GameController : MonoBehaviour {
             playerUnit.canAttack = true;
         }
         curState = GameState.EnemyTurn;
-        
+
+        UpdateUnitLocations();
+
         StartCoroutine(WaitForMyTurn());
+    }
+
+    string UpdateUnitLocations()
+    {
+        string teamInfo = "";
+
+        for (int i = 0; i < numTeams; i++)
+        {
+            teamInfo += "&spn!" + i + "!";
+
+            foreach (UnitController unit in unitsInGame[i])
+            {
+                teamInfo += unit.numUnitType + "*" + unit.curCoords.ToStarString() + "^";
+            }
+        }
+
+        teamInfo = teamInfo.Remove(teamInfo.Length - 1);
+
+        Debug.Log("gameUnitsInfo: " + teamInfo);
+
+        return teamInfo;
     }
 
     public void MoveCameraLeftButtonSelect(float duration)
@@ -827,7 +834,10 @@ public class GameController : MonoBehaviour {
         //Debug.Log("MyID: " + playerTeamID + ", nextPlayerID: " + nextPlayerID);
 
         //NetworkController.instance.SendStringToDB(thisTurnCMDs, nextPlayerID);
-        Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID, gameID));
+
+        
+
+        Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID, gameID, UpdateUnitLocations()));
         thisTurnCMDs = "";
 
         yield return sendCMD;
@@ -1014,6 +1024,11 @@ public struct IntVector2
         y = newY;
     }
 
+    public IntVector2(string newX, string newY)
+    {
+        x = int.Parse(newX);
+        y = int.Parse(newY);
+    }
     /// <summary>
     /// Prints the IntV2 in format: (x, y)
     /// </summary>
@@ -1034,6 +1049,11 @@ public struct IntVector2
     public string ToLightString()
     {
         return (x + "," + y);
+    }
+
+    public string ToStarString()
+    {
+        return (x + "*" + y);
     }
 
     public static bool operator ==(IntVector2 v1, IntVector2 v2)

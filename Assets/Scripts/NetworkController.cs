@@ -20,10 +20,12 @@ public class NetworkController : MonoBehaviour {
         serverAddress = "http://homecookedgames.com/sbphp/scripts/";
     }
 
-	public void SendStringToDB(string dataToSend, int nextPlayerID, string gameID)
+    /*
+	public void SendStringToDB(string dataToSend, int nextPlayerID, string gameID, string boardState)
     {
-        StartCoroutine(SendData(dataToSend, nextPlayerID, gameID));
+        StartCoroutine(SendData(dataToSend, nextPlayerID, gameID, boardState));
     }
+    */
 
     public static IEnumerator AccountLogin(string user, string pin)
     {
@@ -87,7 +89,7 @@ public class NetworkController : MonoBehaviour {
         }
     }
 
-    public IEnumerator SendData(string dataToSend, int nextPlayerID, string gameID)
+    public IEnumerator SendData(string dataToSend, int nextPlayerID, string gameID, string boardState)
     {
         //Debug.Log("SendData(" + dataToSend + ", " + nextPlayerID + ")");
 
@@ -101,6 +103,7 @@ public class NetworkController : MonoBehaviour {
         form.AddField("whoTurn", nextPlayerID);
         form.AddField("username", dbUsername);
         form.AddField("password", dbPassword);
+        form.AddField("boardState", boardState);
 
         WWW www = new WWW(serverAddress + "sendCmd.php", form);
 

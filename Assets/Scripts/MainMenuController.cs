@@ -424,7 +424,7 @@ public class MainMenuController : MonoBehaviour {
                 {
                     case "0":
                         newGameButton.onClick.AddListener(() => AcceptGame(gameID));
-                        Debug.Log("case0");
+                        //Debug.Log("case0");
                         break;
 
                     case "1":
@@ -536,13 +536,26 @@ public class MainMenuController : MonoBehaviour {
 
         //GlobalData.instance.inGamePlayerID = 0;
 
+        string teamInfo = "spn!0!";
+
+        string[] teamUnits = teamStr.Split(',');
+
+        foreach (string str in teamUnits)
+        {
+            teamInfo += str + "*" + IntVector2.coordDownLeft.ToStarString() + "^";
+        }
+
+        teamInfo = teamInfo.Remove(teamInfo.Length - 1);
+
+        Debug.Log("JoinGame() gameUnitsInfo: " + teamInfo);
+
         WWWForm dbCredentials = new WWWForm();
         dbCredentials.AddField("username", dbUsername);
         dbCredentials.AddField("password", dbPassword);
         dbCredentials.AddField("playerID", GlobalData.instance.playerID);
         dbCredentials.AddField("boardSize", "8X7");
         dbCredentials.AddField("otherUsername", otherUsername);
-
+        dbCredentials.AddField("teamInfo", teamInfo);
         //Debug.Log("PID = " + GlobalData.instance.playerID);
 
         WWW newGameRequest = new WWW(serverAddress + "createNewGame.php", dbCredentials);
@@ -560,8 +573,10 @@ public class MainMenuController : MonoBehaviour {
             Debug.Log("GameID is: " + convertedInt.ToString());
             Debug.Log("GameID is: " + newGameRequest.text);
             */
-            GlobalData.instance.SetupLoadGameDataHelper("1", newGameRequest.text, "2", teamStr);
-            NetworkController.instance.SendStringToDB("&grd|" + 8 + "," + 7, 0, newGameRequest.text);
+            Debug.Log("GameID is: " + newGameRequest.text);
+            GlobalData.instance.SetupLoadGameDataHelper("1", newGameRequest.text, "2", teamInfo);
+            Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData("&grd|" + 7 + "," + 8, 0, newGameRequest.text, teamInfo));
+            yield return sendCMD;
             SceneManager.LoadScene("Scene2");
         }
         else
@@ -583,11 +598,23 @@ public class MainMenuController : MonoBehaviour {
         GlobalData.instance.currentGameID = convertedInt;
         */
 
+        string teamInfo = "&spn!1!";
+
+        string[] teamUnits = teamStr.Split(',');
+
+        foreach (string str in teamUnits)
+        {
+            teamInfo += str + "*" + IntVector2.coordDownLeft.ToStarString() + "^";
+        }
+
+        teamInfo = teamInfo.Remove(teamInfo.Length - 1);
+
         WWWForm gameJoinID = new WWWForm();
         gameJoinID.AddField("gID", gameID);
         gameJoinID.AddField("username", dbUsername);
         gameJoinID.AddField("password", dbPassword);
         gameJoinID.AddField("playerID", GlobalData.instance.playerID);
+        gameJoinID.AddField("teamInfo", teamInfo);
         WWW attemptGameJoin = new WWW(serverAddress + "joinGame.php", gameJoinID);
 
         yield return attemptGameJoin;
@@ -596,7 +623,7 @@ public class MainMenuController : MonoBehaviour {
         {
             Debug.Log("Joining game with ID: " + gameID);
             Debug.Log("From Server: " + attemptGameJoin.text);
-            GlobalData.instance.SetupLoadGameDataHelper("2", gameID, "0", teamStr);
+            GlobalData.instance.SetupLoadGameDataHelper("2", gameID, "0", teamInfo);
             SceneManager.LoadScene("Scene2");
         }
         else

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class UnitController : MonoBehaviour
 {
-    public int unitHealth, attackStat, defenseStat, movementRange, AttackRange;
+    public int unitHealth, attackStat, defenseStat, movementRange, AttackRange, numUnitType;
     public float yOffset;
     public string unitType;
     public bool canMove, canAttack;
