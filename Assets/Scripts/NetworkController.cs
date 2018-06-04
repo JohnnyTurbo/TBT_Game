@@ -89,7 +89,7 @@ public class NetworkController : MonoBehaviour {
         }
     }
 
-    public IEnumerator SendData(string dataToSend, int nextPlayerID, string gameID, string boardState)
+    public IEnumerator SendData(string dataToSend, int nextPlayerID, string gameID, string boardState, string lastCMDIndex)
     {
         //Debug.Log("SendData(" + dataToSend + ", " + nextPlayerID + ")");
 
@@ -104,6 +104,7 @@ public class NetworkController : MonoBehaviour {
         form.AddField("username", dbUsername);
         form.AddField("password", dbPassword);
         form.AddField("boardState", boardState);
+        form.AddField("lastCMDIndex", lastCMDIndex);
 
         WWW www = new WWW(serverAddress + "sendCmd.php", form);
 

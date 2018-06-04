@@ -366,11 +366,11 @@ public class MainMenuController : MonoBehaviour {
             {
                 string[] gameStringComponents = userGamesInfo[i].Split(',');
                 string gameID = gameStringComponents[0];
-                string gamePlayerID = (gameStringComponents[1] == "0") ? "1" : "2";
+                string gamePlayerID = gameStringComponents[1];
                 string movesBehind = gameStringComponents[2];
                 string gameVersion = gameStringComponents[3];
                 string gameStatus = gameStringComponents[4];
-                string whoseTurn = (gameStringComponents[5] == "0") ? "1" : "2";
+                string whoseTurn = gameStringComponents[5];
                 /*
                 string gameBoardInfo = gameStringComponents[6];
                 string gameUnitsInfo = gameStringComponents[7];
@@ -454,18 +454,18 @@ public class MainMenuController : MonoBehaviour {
     void LoadGame(string[] gameAttributes)
     {
         string gameID = gameAttributes[0];
-        string gamePlayerID = (gameAttributes[1] == "0") ? "1" : "2";
+        string gamePlayerID = gameAttributes[1];
         string movesBehind = gameAttributes[2];
         string gameVersion = gameAttributes[3];
         string gameStatus = gameAttributes[4];
-        string whoseTurn = (gameAttributes[5] == "0") ? "1" : "2";
+        string whoseTurn = gameAttributes[5];
         string gameBoardInfo = gameAttributes[6];
         string gameUnitsInfo = gameAttributes[7];
         string lastCmdIndex = gameAttributes[8];
 
         Debug.Log("LoadGame(string " + gameID + ")");
 
-        GlobalData.instance.SetupLoadGameDataHelper(gamePlayerID, gameID, lastCmdIndex, gameUnitsInfo);
+        GlobalData.instance.SetupLoadGameDataHelper(gamePlayerID, gameID, lastCmdIndex, gameUnitsInfo, gameBoardInfo, whoseTurn);
 
         SceneManager.LoadScene("Scene2");
     }
@@ -532,6 +532,8 @@ public class MainMenuController : MonoBehaviour {
 
     IEnumerator JoinGame()
     {
+        string boardSize = "7X8";
+
         //Debug.Log("JoinGame()");
 
         //GlobalData.instance.inGamePlayerID = 0;
@@ -542,10 +544,10 @@ public class MainMenuController : MonoBehaviour {
 
         foreach (string str in teamUnits)
         {
-            teamInfo += str + "*" + IntVector2.coordDownLeft.ToStarString() + "^";
+            teamInfo += str + "*" + IntVector2.coordDownLeft.ToStarString() + "*-1" + "^";
         }
 
-        teamInfo = teamInfo.Remove(teamInfo.Length - 1);
+        teamInfo = teamInfo.Remove(teamInfo.Length - 1);    //Removes the ^ at the end of the string
 
         Debug.Log("JoinGame() gameUnitsInfo: " + teamInfo);
 
@@ -553,7 +555,7 @@ public class MainMenuController : MonoBehaviour {
         dbCredentials.AddField("username", dbUsername);
         dbCredentials.AddField("password", dbPassword);
         dbCredentials.AddField("playerID", GlobalData.instance.playerID);
-        dbCredentials.AddField("boardSize", "8X7");
+        dbCredentials.AddField("boardSize", boardSize);
         dbCredentials.AddField("otherUsername", otherUsername);
         dbCredentials.AddField("teamInfo", teamInfo);
         //Debug.Log("PID = " + GlobalData.instance.playerID);
@@ -574,9 +576,9 @@ public class MainMenuController : MonoBehaviour {
             Debug.Log("GameID is: " + newGameRequest.text);
             */
             Debug.Log("GameID is: " + newGameRequest.text);
-            GlobalData.instance.SetupLoadGameDataHelper("1", newGameRequest.text, "2", teamInfo);
-            Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData("&grd|" + 7 + "," + 8, 0, newGameRequest.text, teamInfo));
-            yield return sendCMD;
+            GlobalData.instance.SetupLoadGameDataHelper("0", newGameRequest.text, "2", teamInfo, boardSize, "1");
+            //Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData("&grd|" + 7 + "," + 8, 0, newGameRequest.text, teamInfo));
+            //yield return sendCMD;
             SceneManager.LoadScene("Scene2");
         }
         else
@@ -604,10 +606,10 @@ public class MainMenuController : MonoBehaviour {
 
         foreach (string str in teamUnits)
         {
-            teamInfo += str + "*" + IntVector2.coordDownLeft.ToStarString() + "^";
+            teamInfo += str + "*" + IntVector2.coordDownLeft.ToStarString() + "*-1" + "^";
         }
 
-        teamInfo = teamInfo.Remove(teamInfo.Length - 1);
+        teamInfo = teamInfo.Remove(teamInfo.Length - 1);    //Removes the ^ at the end of the string
 
         WWWForm gameJoinID = new WWWForm();
         gameJoinID.AddField("gID", gameID);
@@ -623,7 +625,9 @@ public class MainMenuController : MonoBehaviour {
         {
             Debug.Log("Joining game with ID: " + gameID);
             Debug.Log("From Server: " + attemptGameJoin.text);
-            GlobalData.instance.SetupLoadGameDataHelper("2", gameID, "0", teamInfo);
+            string gameBoardSize = attemptGameJoin.text.Split('@')[1];
+            string allTeamInfo = attemptGameJoin.text.Split('@')[3];
+            GlobalData.instance.SetupLoadGameDataHelper("1", gameID, "0", allTeamInfo, gameBoardSize, "1");
             SceneManager.LoadScene("Scene2");
         }
         else
