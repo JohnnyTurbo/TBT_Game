@@ -168,4 +168,13 @@ public class UnitController : MonoBehaviour
             return false;
         }
     }
+
+    public void GoToBench()
+    {
+        int playersOnBench = GameController.instance.numPlayersOnBench[unitTeamID];
+        GameController.instance.numPlayersOnBench[unitTeamID]++;
+        Vector3 newPos = new Vector3(14.5f, yOffset, (unitTeamID * 8) + (playersOnBench * 2) + 1);
+        transform.position = newPos;
+        curCoords = IntVector2.coordDownLeft;
+    }
 }

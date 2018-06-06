@@ -20,6 +20,7 @@ public class GameController : MonoBehaviour {
     public const int numTeams = 2;
     public int playerTeamID;
     public int nextPlayerID;
+    public int[] numPlayersOnBench;
     public TileController[,] mapGrid;
     public UnitController curUnit = null;
     public TileController curHoveredTile = null;
@@ -114,16 +115,18 @@ public class GameController : MonoBehaviour {
         //InitializeMap(0 == GlobalData.instance.playerID);
         //SpawnUnits();
 
+        numPlayersOnBench = new int[numTeams];
+
         if (!isOnMobile)
         {
             MoveCameraLeftButtonSelect(3.5f);
         }
         else
         {
-            Camera.main.transform.position = new Vector3(6.5f, 18, 7);
+            Camera.main.transform.position = new Vector3(7.25f, 18, 7);
             Camera.main.transform.rotation = Quaternion.Euler(90, -90, 0);
             Camera.main.orthographic = true;
-            Camera.main.orthographicSize = 7.7f;
+            Camera.main.orthographicSize = 8.5f;
             generalActionCanvas.transform.Find("CamMoveIcon").gameObject.SetActive(false);
         }
         StartCoroutine(SetupGame());
@@ -298,7 +301,8 @@ public class GameController : MonoBehaviour {
 
                                 HideUnitStats();
 
-                                thisTurnCMDs += ("&atk|" + indexOfOther + "|" + newHealthOfOther);
+                                //thisTurnCMDs += ("&atk|" + indexOfOther + "|" + newHealthOfOther);
+                                thisTurnCMDs += ("&atk|" + indexOfOther + "|" + curUnit.unitIndex);
 
                                 indexOfLastCommand++;
 
@@ -307,7 +311,8 @@ public class GameController : MonoBehaviour {
 
                                 //Debug.Log("Num of all units: " + unitsInGame[numTeams].Count);
 
-                                if (newHealthOfOther <= 0 && unitsInGame[nextPlayerID].Count <= 0)
+                                //if (newHealthOfOther <= 0 && unitsInGame[nextPlayerID].Count <= 0)
+                                if(numPlayersOnBench[nextPlayerID] >= 3)
                                 {
                                     //Debug.Log(unitsInGame[nextPlayerID].Count);
                                     curUnit.OnUnitDeselect();
@@ -317,6 +322,7 @@ public class GameController : MonoBehaviour {
                                     Debug.Log("thisTurnCMDs: " + thisTurnCMDs);
                                     curState = GameState.GameOver;
                                     //NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID);
+                                    StartCoroutine(NetworkController.instance.EndGame(gameID));
                                     StartCoroutine(WaitForMyTurn());
                                     break;
                                 }
@@ -446,20 +452,30 @@ public class GameController : MonoBehaviour {
             //Attack
             case "atk":
                 unitID = int.Parse(cmdToProc[1]);
-                int newHealth = int.Parse(cmdToProc[2]);
+                //int newHealth = int.Parse(cmdToProc[2]);
+                int newHealth;
+                int attackingUnitID = int.Parse(cmdToProc[2]);
                 UnitController affectedUnit = unitsInGame[numTeams][unitID];
+                UnitController attackingUnit = unitsInGame[numTeams][attackingUnitID];
+                TileController affectedUnitTile = mapGrid[affectedUnit.curCoords.x, affectedUnit.curCoords.y];
+                affectedUnitTile.AttemptUnitAttack(attackingUnit, out newHealth);
 
+
+                /*
                 Debug.Log("atk, numTeams: " + numTeams + ", unitID: " + unitID);
 
                 if (newHealth <= 0)
                 {
                     //Debug.Log("New Health is less than or equal to zero!");
-                    Destroy(affectedUnit.gameObject);
+                    //Destroy(affectedUnit.gameObject);
+                    affectedUnit.GoToBench();
+                    affectedUnit.unitHealth = 0;
                 }
                 else
                 {
                     affectedUnit.unitHealth = newHealth;
                 }
+                */
                 break;
 
             //Game Over
@@ -502,18 +518,8 @@ public class GameController : MonoBehaviour {
 
     void SpawnUnit(int unitType, int teamID, IntVector2 location, int health)
     {
-        int xLoc, yLoc;
 
-        if (location == IntVector2.coordDownLeft)
-        {
-            xLoc = (unitIndex % 3) + 2;
-            yLoc = (gridSizeY - 1) * teamID;
-        }
-        else
-        {
-            xLoc = location.x;
-            yLoc = location.y;
-        }
+        
 
         GameObject newUnit = Instantiate(unitTypes[unitType], Vector3.zero, Quaternion.identity);
         string unitSpriteToLoad = "";
@@ -554,16 +560,37 @@ public class GameController : MonoBehaviour {
         SpriteRenderer unitSprite = newUnit.transform.Find("Sprite").GetComponent<SpriteRenderer>();
         unitSprite.sprite = Resources.Load("PlayerSprites/" + unitSpriteToLoad, typeof (Sprite)) as Sprite;
         UnitController newUnitController = newUnit.GetComponent<UnitController>();
-
-        Vector3 newUnitLoc = new Vector3((xLoc * tileSize), newUnitController.yOffset, (yLoc * tileSize));
-        newUnit.transform.position = newUnitLoc;
-
         newUnitController.unitTeamID = teamID;
         newUnitController.unitIndex = unitIndex;
         newUnitController.numUnitType = unitType;
-        if(health != -1)
+        if (health == 0)
         {
-            newUnitController.unitHealth = health;
+            newUnitController.GoToBench();
+            newUnitController.unitHealth = 0;
+        }
+        else
+        {
+            int xLoc, yLoc;
+
+            if (location == IntVector2.coordDownLeft)
+            {
+                xLoc = (unitIndex % 3) + 2;
+                yLoc = (gridSizeY - 1) * teamID;
+            }
+            else
+            {
+                xLoc = location.x;
+                yLoc = location.y;
+            }
+            Vector3 newUnitLoc = new Vector3((xLoc * tileSize), newUnitController.yOffset, (yLoc * tileSize));
+            newUnit.transform.position = newUnitLoc;
+            newUnitController.curCoords = new IntVector2(xLoc, yLoc);
+            mapGrid[xLoc, yLoc].isOccupied = true;
+            mapGrid[xLoc, yLoc].unitOnTile = newUnit;
+            if (health != -1)
+            {
+                newUnitController.unitHealth = health;
+            }
         }
         if (!isOnMobile)
         {
@@ -573,10 +600,6 @@ public class GameController : MonoBehaviour {
         {
             newUnit.transform.rotation = Quaternion.Euler(0, 0, 90);
         }
-        newUnitController.curCoords = new IntVector2(xLoc, yLoc);
-        mapGrid[xLoc, yLoc].isOccupied = true;
-        mapGrid[xLoc, yLoc].unitOnTile = newUnit;
-        //newUnit.GetComponent<MeshRenderer>().material = playerColors[teamID];
         unitsInGame[teamID].Add(newUnitController);
         unitsInGame[numTeams].Add(newUnitController);
         unitIndex++;

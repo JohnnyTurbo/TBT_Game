@@ -181,6 +181,36 @@ public class NetworkController : MonoBehaviour {
         }
     }
 
+    public IEnumerator EndGame(string gameID)
+    {
+        Debug.Log("Ending Game");
+
+        float networkFunctionStartTime = Time.time;
+
+        WWWForm form = new WWWForm();
+
+        form.AddField("username", dbUsername);
+        form.AddField("password", dbPassword);
+        form.AddField("gID", gameID);
+        form.AddField("playerID", GlobalData.instance.playerID);
+
+        WWW www = new WWW(serverAddress + "endGame.php", form);
+
+        yield return www;
+
+        //ServerCallTime(networkFunctionStartTime, "ReceiveTurn()");
+
+        if (www.error == null)
+        {
+            Debug.Log("WWW Ended Game! " + www.text);
+            yield return www.text;
+        }
+        else
+        {
+            Debug.LogError("WWW did not end game! " + www.error);
+        }
+    }
+
     public void ServerCallTime(float startTime, string functionName)
     {
         float duration = Time.time - startTime;

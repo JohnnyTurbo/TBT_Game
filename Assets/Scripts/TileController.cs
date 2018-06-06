@@ -137,13 +137,18 @@ public class TileController : MonoBehaviour, IPointerEnterHandler, IPointerExitH
                 newHealth = otherUnit.unitHealth;
                 if (otherUnit.unitHealth <= 0)
                 {
+                    Debug.Log("unit dead");
                     if (gameController.isOnMobile)
                     {
                         newDmgIcon.GetComponent<Text>().text = "";
                     }
                     newHealth = 0;
-                    GameController.instance.unitsInGame[otherUnit.unitTeamID].Remove(otherUnit);
-                    Destroy(unitOnTile);
+
+                    //GameController.instance.unitsInGame[otherUnit.unitTeamID].Remove(otherUnit);
+                    //Destroy(unitOnTile);
+
+                    otherUnit.unitHealth = newHealth;
+                    otherUnit.GoToBench();
                     unitOnTile = null;
 
                     Vector3 koTextLoc = new Vector3(otherUnit.curCoords.x * 2f, 1.5f, otherUnit.curCoords.y * 2f);
