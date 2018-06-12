@@ -181,6 +181,35 @@ public class NetworkController : MonoBehaviour {
         }
     }
 
+    public IEnumerator SpawnOtherTeam(string gameID)
+    {
+        float networkFunctionStartTime = Time.time;
+
+        WWWForm form = new WWWForm();
+
+        form.AddField("username", dbUsername);
+        form.AddField("password", dbPassword);
+        form.AddField("gID", gameID);
+        form.AddField("pID", GlobalData.instance.playerID);
+
+        WWW www = new WWW(serverAddress + "getOtherTeam.php", form);
+
+        yield return www;
+
+        //ServerCallTime(networkFunctionStartTime, "ReceiveTurn()");
+
+        if (www.error == null)
+        {
+            Debug.Log("SpawnOtherTeam: " + www.text);
+            GlobalData.instance.otherTeam = www.text.Split('&')[1];
+            yield return www.text;
+        }
+        else
+        {
+            Debug.LogError("WWW did not end game! " + www.error);
+        }
+    }
+
     public IEnumerator EndGame(string gameID)
     {
         Debug.Log("Ending Game");

@@ -2727,7 +2727,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &589226339
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5839,6 +5839,7 @@ MonoBehaviour:
   tileSize: 2
   playerTeamID: 0
   nextPlayerID: 0
+  numPlayersOnBench: 
   curUnit: {fileID: 0}
   curHoveredTile: {fileID: 0}
   curSelectedTile: {fileID: 0}
@@ -8170,6 +8171,10 @@ Prefab:
     - target: {fileID: 400000, guid: 9485b0c79d11e2e4d0007da98d76c639, type: 2}
       propertyPath: m_LocalScale.z
       value: 315
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000, guid: 9485b0c79d11e2e4d0007da98d76c639, type: 2}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 9485b0c79d11e2e4d0007da98d76c639, type: 2}

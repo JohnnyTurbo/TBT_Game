@@ -40,7 +40,7 @@ public class GameController : MonoBehaviour {
     int unitIndex = 0;
     int camPositionIndex = 1;
     bool isCameraMoving = false;
-
+    bool bothTeamsSpawned = false;
     string teamStr, gameID;
 
     string thisTurnCMDs = "";
@@ -148,15 +148,31 @@ public class GameController : MonoBehaviour {
             Debug.Log("GameUnitsInfo: " + teamStr);
             string gameBoardSize = "grd|" + gameData[4];
             //Debug.Log("gameBoardSize: " + gameBoardSize);
-            ProcessCommand(gameBoardSize.Split('|'));
+
+            //ProcessCommand(gameBoardSize.Split('|'));
+            StartCoroutine(ProcessCommand(gameBoardSize.Split('|')));
 
             string[] teamUnits = teamStr.Split('&');
             int index = 0;
-            foreach(string teamString in teamUnits)
+            foreach (string teamString in teamUnits)
             {
-                ProcessCommand(teamString.Split('!'));
+                //ProcessCommand(teamString.Split('!'));
+                StartCoroutine(ProcessCommand(teamString.Split('!')));
                 ++index;
-                Debug.Log("ind" + index);
+            }
+
+            if (index == 2)
+            {
+                bothTeamsSpawned = true;
+                Debug.Log("Both Teams Have Spawned");
+            }
+            else if (index == 1)
+            {
+                Debug.Log("Only one team spawned");
+            }
+            else
+            {
+                Debug.LogError("Error: Tried to spawn " + index + " teams.");
             }
 
             int whoseTurn = int.Parse(gameData[5]);
@@ -322,8 +338,10 @@ public class GameController : MonoBehaviour {
                                     Debug.Log("thisTurnCMDs: " + thisTurnCMDs);
                                     curState = GameState.GameOver;
                                     //NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID);
+                                    StartCoroutine(NetworkController.instance.SendData(thisTurnCMDs, nextPlayerID, gameID, UpdateUnitLocations(), indexOfLastCommand.ToString()));
                                     StartCoroutine(NetworkController.instance.EndGame(gameID));
-                                    StartCoroutine(WaitForMyTurn());
+                                    //StartCoroutine(WaitForMyTurn());
+                                    endTurnButton.gameObject.SetActive(false);
                                     break;
                                 }
 
@@ -391,17 +409,26 @@ public class GameController : MonoBehaviour {
 
         subStrings = strToParse.Split('&');
 
+        Debug.Log("index of last CMD: " + indexOfLastCommand + " sub length: " + subStrings.Length);
+
         while(indexOfLastCommand < subStrings.Length)
         {
+            
             string[] cmdToProc = subStrings[indexOfLastCommand].Split('|');
 
-            ProcessCommand(cmdToProc);
-
+            //ProcessCommand(cmdToProc);
+            StartCoroutine(ProcessCommand(cmdToProc));
+            while (!bothTeamsSpawned)
+            {
+                yield return null;
+                Debug.Log("both ev spnd");
+            }
             indexOfLastCommand++;
         }
     }
 
-    void ProcessCommand(string[] cmdToProc)
+    //void ProcessCommand(string[] cmdToProc)
+    IEnumerator ProcessCommand(string[] cmdToProc)
     {
         string[] cmdParts;
         int unitID;
@@ -410,7 +437,17 @@ public class GameController : MonoBehaviour {
         {
             //Message
             case "msg":
-                //Debug.Log("Game Start");
+                string messageFromGame = cmdToProc[1];
+                Debug.Log("Processing Message: " + messageFromGame);
+                if (indexOfLastCommand == 0 && playerTeamID == 0 && !bothTeamsSpawned)
+                {
+                    Coroutine spnOther = StartCoroutine(NetworkController.instance.SpawnOtherTeam(gameID));
+                    yield return spnOther;
+                    Coroutine spnCmd = StartCoroutine(ProcessCommand(GlobalData.instance.otherTeam.Split('!')));
+                    yield return spnCmd;
+                    bothTeamsSpawned = true;
+                    Debug.Log("Other Team Spawned");
+                }
                 break;
 
             //Grid Size
@@ -460,33 +497,19 @@ public class GameController : MonoBehaviour {
                 TileController affectedUnitTile = mapGrid[affectedUnit.curCoords.x, affectedUnit.curCoords.y];
                 affectedUnitTile.AttemptUnitAttack(attackingUnit, out newHealth);
 
-
-                /*
-                Debug.Log("atk, numTeams: " + numTeams + ", unitID: " + unitID);
-
-                if (newHealth <= 0)
-                {
-                    //Debug.Log("New Health is less than or equal to zero!");
-                    //Destroy(affectedUnit.gameObject);
-                    affectedUnit.GoToBench();
-                    affectedUnit.unitHealth = 0;
-                }
-                else
-                {
-                    affectedUnit.unitHealth = newHealth;
-                }
-                */
                 break;
 
             //Game Over
             case "end":
                 ShowMessage("YOU LOST!", 500);
+                endTurnButton.gameObject.SetActive(false);
                 break;
 
             default:
                 Debug.LogError("Error: Unrecognized Command: " + cmdToProc[0]);
                 break;
         }
+        yield return null;
     }
 
     void InitializeMap()
@@ -518,8 +541,6 @@ public class GameController : MonoBehaviour {
 
     void SpawnUnit(int unitType, int teamID, IntVector2 location, int health)
     {
-
-        
 
         GameObject newUnit = Instantiate(unitTypes[unitType], Vector3.zero, Quaternion.identity);
         string unitSpriteToLoad = "";

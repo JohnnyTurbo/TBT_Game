@@ -15,7 +15,7 @@ public class MainMenuController : MonoBehaviour {
     public static MainMenuController instance;
     
     public GameObject mainMenuCanvas, loginCanvas, createUserCanvas, userHomepageCanvas, createGameCanvas, draftTeamCanvas,
-                      loadingScreenCanvas, mainOptionsCanvas;
+                      loadingScreenCanvas, mainOptionsCanvas, requestedGamesCanvas;
     public GameObject activeGameButtonPrefab, pendingGameButtonPrefab, pastGameButtonPrefab;
     public Sprite[] athletes;
     public Image[] team;
@@ -26,11 +26,11 @@ public class MainMenuController : MonoBehaviour {
     readonly int maxNumPlayersOnTeam = 3;
 
     int numPlayersOnTeam = 0;
-    string teamStr = "", gameIdToJoin = "", otherUsername = "";
+    string teamStr = "", gameIdToJoin = "", otherUsername = "", wasGameRequested = "";
     Sprite SelectionCircleStartSpr;
     InputField usernameIF, pinIF, newUsernameIF, newPinIF, newPinConfIF, newEmailIF, gameIDIF, otherUsernameIF;
     Text errorText, serverErrorText;
-    GameObject loadingScreen, usersGamesContainer;
+    GameObject loadingScreen, usersGamesContainer, requestedGamesContainer;
     Button tryAgainButton, playButton, tutorialButton;
     Toggle staySignedInToggle;
 
@@ -84,6 +84,8 @@ public class MainMenuController : MonoBehaviour {
         serverErrorText = loadingScreen.transform.Find("ServerErrorText").GetComponent<Text>();
         tryAgainButton = loadingScreen.transform.Find("TryAgainButton").GetComponent<Button>();
 
+        requestedGamesContainer = requestedGamesCanvas.transform.Find("ScrollView").Find("RequestedGamesContainer").gameObject;
+
         introVP = this.GetComponent<VideoPlayer>();
 
         //Set defaults on objects
@@ -107,6 +109,7 @@ public class MainMenuController : MonoBehaviour {
         userHomepageCanvas.SetActive(false);
         createGameCanvas.SetActive(false);
         draftTeamCanvas.SetActive(false);
+        requestedGamesCanvas.SetActive(false);
 
         tryAgainButton.gameObject.SetActive(false);
         loadingScreen.SetActive(false);
@@ -329,6 +332,54 @@ public class MainMenuController : MonoBehaviour {
         }
     }
 
+    IEnumerator PopulateRequestsPage()
+    {
+        float startTime = Time.time;
+
+        WWWForm getActiveRequests = new WWWForm();
+
+        getActiveRequests.AddField("username", dbUsername);
+        getActiveRequests.AddField("password", dbPassword);
+        getActiveRequests.AddField("playerID", GlobalData.instance.playerID);
+
+        WWW fetchGameRequests = new WWW(serverAddress + "fetchGameRequests.php", getActiveRequests);
+
+        yield return fetchGameRequests;
+
+        if(fetchGameRequests.error == null)
+        {
+            
+            if(fetchGameRequests.text == "")
+            {
+                yield break;
+            }
+            string fullRequestString = fetchGameRequests.text.Remove(fetchGameRequests.text.Length - 1);
+            Debug.Log("Requested Games: " + fullRequestString);
+            string[] requestedGames = fullRequestString.Split('|');
+            for(int i = 0; i < requestedGames.Length; i++)
+            {
+                string[] gameParts = requestedGames[i].Split('+');
+
+                GameObject gameButton = pendingGameButtonPrefab;
+                string buttonText = "Game Request From: " + gameParts[1];
+
+                Vector3 newButtonPos = new Vector3(0, (i * -175), 0f);
+                GameObject newGameButtonGO = GameObject.Instantiate(gameButton, requestedGamesContainer.transform);
+
+                Button newGameButton = newGameButtonGO.GetComponent<Button>();
+                Text newButtonText = newGameButtonGO.transform.Find("Text").GetComponent<Text>();
+                newGameButtonGO.transform.localPosition = newButtonPos;
+
+                newButtonText.text = buttonText;
+                newGameButton.onClick.AddListener(() => AcceptGame(gameParts[0], "Yes"));
+            }
+        }
+        else
+        {
+            Debug.LogError("Error while fetching game requests: " + fetchGameRequests.error);
+        }
+    }
+
     /// <summary>
     /// String returned from server: 
     /// 
@@ -354,6 +405,13 @@ public class MainMenuController : MonoBehaviour {
         if(fetchUserGames.error == null)
         {
 
+            if (fetchUserGames.text == "")
+            {
+                Debug.Log("User Has No Games");
+                NetworkController.instance.ServerCallTime(startTime, "PopulateUserHomepage");
+                yield break;
+            }
+
             Debug.Log("Users games: " + fetchUserGames.text);
 
             string[] userGamesInfo = fetchUserGames.text.Split('|');
@@ -371,17 +429,20 @@ public class MainMenuController : MonoBehaviour {
                 string gameVersion = gameStringComponents[3];
                 string gameStatus = gameStringComponents[4];
                 string whoseTurn = gameStringComponents[5];
-                /*
+                
                 string gameBoardInfo = gameStringComponents[6];
                 string gameUnitsInfo = gameStringComponents[7];
                 string lastCmdIndex = gameStringComponents[8];
-                */
+                
+                string otherUsername = gameStringComponents[9];
+
                 /*
                 Debug.Log("Player with global ID: " + GlobalData.instance.playerID + " is Player: " + gamePlayerID +
                           " in game with ID: " + gameStringComponents[0] + ". And they are " + gameStringComponents[2] +
                           " moves behind. The game's version is: " + gameStringComponents[3] + ", the status is: " +
                           gameStringComponents[4] + ", and it is player " + whoseTurn + "'s turn.");
                 */
+
                 GameObject gameButton;
                 string buttonText;
 
@@ -389,18 +450,20 @@ public class MainMenuController : MonoBehaviour {
                 {
                     case "0":
                         gameButton = pendingGameButtonPrefab;
-                        buttonText = "New Game!";
+                        buttonText = (otherUsername == "NONE") ? "Searching for Opponent" : "Pending Game With: " + otherUsername;
                         break;
 
                     case "1":
                         gameButton = activeGameButtonPrefab;
-                        string turnText = (gamePlayerID == whoseTurn) ? "Your Turn" : "Opponent's Turn";
-                        buttonText = "Game ID: " + gameID + " - " + turnText;
+                        string turnText = (gamePlayerID == whoseTurn) ? "Your Turn" : "Their Turn";
+                        buttonText = "Match with: " + otherUsername + " - " + turnText;
                         break;
 
                     case "2":
                         gameButton = pastGameButtonPrefab;
-                        buttonText = "Game Over";
+                        buttonText = "Game Over - You ";
+                        buttonText += (whoseTurn == gamePlayerID) ? "Lost to: " : "Beat: ";
+                        buttonText += otherUsername;
                         break;
 
                     default:
@@ -423,8 +486,11 @@ public class MainMenuController : MonoBehaviour {
                 switch (gameStatus)
                 {
                     case "0":
-                        newGameButton.onClick.AddListener(() => AcceptGame(gameID));
-                        //Debug.Log("case0");
+                        newGameButton.onClick.AddListener(() => AcceptGame(gameID, ""));
+                        if(gamePlayerID == "0")
+                        {
+                            newGameButton.interactable = false;
+                        }
                         break;
 
                     case "1":
@@ -433,13 +499,13 @@ public class MainMenuController : MonoBehaviour {
 
                     case "2":
                         //Show Game Stats
+                        newGameButton.interactable = false;
                         break;
 
                     default:
 
                         break;
-                }
-                                
+                }                 
             }
         }
         else
@@ -513,10 +579,12 @@ public class MainMenuController : MonoBehaviour {
         }
     }
 
-    void AcceptGame(string gameID)
+    void AcceptGame(string gameID, string gameRequested)
     {
         gameIdToJoin = gameID;
+        wasGameRequested = gameRequested;
         userHomepageCanvas.SetActive(false);
+        requestedGamesCanvas.SetActive(false);
         draftTeamCanvas.SetActive(true);
     }
 
@@ -576,7 +644,7 @@ public class MainMenuController : MonoBehaviour {
             Debug.Log("GameID is: " + newGameRequest.text);
             */
             Debug.Log("GameID is: " + newGameRequest.text);
-            GlobalData.instance.SetupLoadGameDataHelper("0", newGameRequest.text, "2", teamInfo, boardSize, "1");
+            GlobalData.instance.SetupLoadGameDataHelper("0", newGameRequest.text, "0", teamInfo, boardSize, "1");
             //Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData("&grd|" + 7 + "," + 8, 0, newGameRequest.text, teamInfo));
             //yield return sendCMD;
             SceneManager.LoadScene("Scene2");
@@ -589,7 +657,7 @@ public class MainMenuController : MonoBehaviour {
         }
     }
 
-    IEnumerator JoinGame(string gameID)
+    IEnumerator JoinGame(string gameID, string requestedGame)
     {
         Debug.Log("JoinGame(" + gameID + ")");
 
@@ -617,6 +685,7 @@ public class MainMenuController : MonoBehaviour {
         gameJoinID.AddField("password", dbPassword);
         gameJoinID.AddField("playerID", GlobalData.instance.playerID);
         gameJoinID.AddField("teamInfo", teamInfo);
+        gameJoinID.AddField("requested", requestedGame);
         WWW attemptGameJoin = new WWW(serverAddress + "joinGame.php", gameJoinID);
 
         yield return attemptGameJoin;
@@ -674,7 +743,7 @@ public class MainMenuController : MonoBehaviour {
         }
         else
         {
-            StartCoroutine(JoinGame(gameIdToJoin));
+            StartCoroutine(JoinGame(gameIdToJoin, wasGameRequested));
         }
     }
 
@@ -702,6 +771,23 @@ public class MainMenuController : MonoBehaviour {
     public void OnButtonClearData()
     {
         PlayerPrefs.DeleteAll();
+    }
+
+    public void OnButtonGetGameRequests()
+    {
+        userHomepageCanvas.SetActive(false);
+        requestedGamesCanvas.SetActive(true);
+        StartCoroutine(PopulateRequestsPage());
+    }
+
+    public void OnButtonBackFromRequests()
+    {
+        foreach(Transform child in requestedGamesContainer.GetComponentInChildren<Transform>())
+        {
+            Destroy(child.gameObject);
+        }
+        requestedGamesCanvas.SetActive(false);
+        userHomepageCanvas.SetActive(true);
     }
 
     IEnumerator Notify()

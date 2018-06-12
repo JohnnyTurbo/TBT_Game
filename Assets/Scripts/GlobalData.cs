@@ -15,6 +15,7 @@ public class GlobalData : MonoBehaviour {
     public string serverAddress;
     public bool hasSeenIntroVid, hasPlayedTutorial;
     public string deviceToken;
+    public string otherTeam;
 
     LoadGameData loadGameDataHelper;
 
