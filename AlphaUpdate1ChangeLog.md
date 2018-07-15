@@ -11,7 +11,7 @@
 1. Back button returns player's to their home screen.
 2. "Player 1" and "Player 2" text are displayed at the bottom of the screen to let the player know what team they are on for that specific game. They are colored to match the jerseys of the team they represent.
 3. Optomizations to reduce battery and data usage
-  - Removed dynamic lighting from the scene
-  - Used a flat color for the background
-  - When waiting for your turn, the game no longer makes frequent requests to the server to see if your opponent has made their move. Instead only one request is made once the device receives an FCM message indicating it is your turn.
+    - Removed dynamic lighting from the scene
+    - Used a flat color for the background
+    - When waiting for your turn, the game no longer makes frequent requests to the server to see if your opponent has made their move. Instead only one request is made once the device receives an FCM message indicating it is your turn.
 4. Fixed a bug that caused the loading screen to block the bottom two rows of the playing field eventhough the loading screen was not visible.
