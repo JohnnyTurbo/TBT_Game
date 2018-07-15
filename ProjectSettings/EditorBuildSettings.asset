@@ -17,3 +17,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/PublicAlphaTutorial.unity
     guid: 74e2e30268b0ec043b192dedb71c3d81
+  - enabled: 1
+    path: Assets/Scenes/PublicAlphaField.unity
+    guid: 9db3c80379b932a4da687327e8b8da8a

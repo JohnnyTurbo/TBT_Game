@@ -13,7 +13,7 @@ public class GlobalData : MonoBehaviour {
     //public int currentGameID;
     //public string teamStr;
     public string serverAddress;
-    public bool hasSeenIntroVid, hasPlayedTutorial;
+    public bool hasSeenIntroVid, hasPlayedTutorial, returningToLoginScreen = false;
     public string deviceToken;
     public string otherTeam;
 

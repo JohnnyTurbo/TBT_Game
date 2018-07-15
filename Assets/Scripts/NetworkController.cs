@@ -12,12 +12,13 @@ public class NetworkController : MonoBehaviour {
     void Awake()
     {
         instance = this;
+        serverAddress = "http://homecookedgames.com/sbphp/scripts/";
     }
 
     void Start()
     {
         //serverAddress = GlobalData.instance.serverAddress;
-        serverAddress = "http://homecookedgames.com/sbphp/scripts/";
+        
     }
 
     /*
@@ -38,6 +39,7 @@ public class NetworkController : MonoBehaviour {
         form.AddField("DBusername", dbUsername);
         form.AddField("password", dbPassword);
         form.AddField("username", user);
+        form.AddField("deviceToken", GlobalData.instance.deviceToken);
         form.AddField("pin", pin);
 
         WWW www = new WWW(serverAddress + "accountLogin.php", form);

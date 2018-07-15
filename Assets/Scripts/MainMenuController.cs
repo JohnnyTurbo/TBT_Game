@@ -15,11 +15,11 @@ public class MainMenuController : MonoBehaviour {
     public static MainMenuController instance;
     
     public GameObject mainMenuCanvas, loginCanvas, createUserCanvas, userHomepageCanvas, createGameCanvas, draftTeamCanvas,
-                      loadingScreenCanvas, mainOptionsCanvas, requestedGamesCanvas;
+                      loadingScreenCanvas, mainOptionsCanvas, requestedGamesCanvas, errorCanvas, feedbackCanvas;
     public GameObject activeGameButtonPrefab, pendingGameButtonPrefab, pastGameButtonPrefab;
     public Sprite[] athletes;
     public Image[] team;
-    public Button confirmButton;
+    public Button confirmButton, backButton;
 
     readonly string serverAddress = "http://homecookedgames.com/sbphp/scripts/";
     readonly string dbUsername = "johnnytu_testusr", dbPassword = "OAnF8TqR12PJ";
@@ -28,9 +28,12 @@ public class MainMenuController : MonoBehaviour {
     int numPlayersOnTeam = 0;
     string teamStr = "", gameIdToJoin = "", otherUsername = "", wasGameRequested = "";
     Sprite SelectionCircleStartSpr;
-    InputField usernameIF, pinIF, newUsernameIF, newPinIF, newPinConfIF, newEmailIF, gameIDIF, otherUsernameIF;
+    InputField usernameIF, pinIF, newUsernameIF, newPinIF, newPinConfIF, newEmailIF, gameIDIF, otherUsernameIF, feedbackIF;
     Text errorText, serverErrorText;
     GameObject loadingScreen, usersGamesContainer, requestedGamesContainer;
+    MainMenuScreen currentScreen;
+    MainMenuScreen mainOptionsScreen, loginScreen, createUserScreen, userHomepageScreen, requestedGamesScreen, 
+                   createGameScreen, draftTeamScreen, feedbackScreen;
     Button tryAgainButton, playButton, tutorialButton;
     Toggle staySignedInToggle;
 
@@ -52,6 +55,8 @@ public class MainMenuController : MonoBehaviour {
         }
 
         instance = _instance;
+
+        Screen.fullScreen = false;
     }
 
     void Start()
@@ -61,7 +66,7 @@ public class MainMenuController : MonoBehaviour {
 
         //Find needed objects
 
-        errorText = mainMenuCanvas.transform.Find("ErrorText").GetComponent<Text>();
+        errorText = errorCanvas.transform.Find("ErrorText").GetComponent<Text>();
 
         playButton = mainOptionsCanvas.transform.Find("PlayButton").GetComponent<Button>();
         tutorialButton = mainOptionsCanvas.transform.Find("TutorialButton").GetComponent<Button>();
@@ -86,6 +91,8 @@ public class MainMenuController : MonoBehaviour {
 
         requestedGamesContainer = requestedGamesCanvas.transform.Find("ScrollView").Find("RequestedGamesContainer").gameObject;
 
+        feedbackIF = feedbackCanvas.transform.Find("FeedbackIF").GetComponent<InputField>();
+
         introVP = this.GetComponent<VideoPlayer>();
 
         //Set defaults on objects
@@ -102,6 +109,17 @@ public class MainMenuController : MonoBehaviour {
         confirmButton.interactable = false;
         SelectionCircleStartSpr = team[0].sprite;
 
+		backButton.onClick.AddListener (GoBack);
+
+        mainOptionsScreen = new MainMenuScreen(mainOptionsCanvas, null);
+        loginScreen = new MainMenuScreen(loginCanvas, mainOptionsScreen);
+        createUserScreen = new MainMenuScreen(createUserCanvas, loginScreen);
+        userHomepageScreen = new MainMenuScreen(userHomepageCanvas, mainOptionsScreen);
+        requestedGamesScreen = new MainMenuScreen(requestedGamesCanvas, userHomepageScreen);
+        createGameScreen = new MainMenuScreen(createGameCanvas, userHomepageScreen);
+        draftTeamScreen = new MainMenuScreen(draftTeamCanvas, userHomepageScreen);
+        feedbackScreen = new MainMenuScreen(feedbackCanvas, userHomepageScreen);
+
         //deactivate unneeded componenets.
 
         loginCanvas.SetActive(false);
@@ -110,33 +128,55 @@ public class MainMenuController : MonoBehaviour {
         createGameCanvas.SetActive(false);
         draftTeamCanvas.SetActive(false);
         requestedGamesCanvas.SetActive(false);
-
+        feedbackCanvas.SetActive(false);
         tryAgainButton.gameObject.SetActive(false);
         loadingScreen.SetActive(false);
 
-        //mainMenuCanvas.SetActive(false);
+        currentScreen = mainOptionsScreen;
 
-
-        //DELETE AFTER FILMING TUTORIAL 4
-        //GlobalData.instance.teamStr = "1,0,3";
+        if(PlayerPrefs.GetInt("stayLoggedIn") == 1 || GlobalData.instance.returningToLoginScreen) {
+            Debug.Log("AttemptingLogin" + PlayerPrefs.GetInt("stayLoggedIn"));
+            GlobalData.instance.returningToLoginScreen = false;
+            mainOptionsCanvas.SetActive(false);
+            Login(PlayerPrefs.GetString("lastLoggedInUser"), PlayerPrefs.GetString("lastUserPIN"));
+        }
     }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            GoBack();
+        }
+    }
+
+	void GoBack(){
+		currentScreen = currentScreen.GoBack ();
+	}
 
     public void OnButtonPlay()
     {
         Debug.Log("OnButtonPlay()");
         mainOptionsCanvas.SetActive(false);
-        if (PlayerPrefs.GetString("lastLoggedInUser") != "")
+        if (PlayerPrefs.GetInt("stayLoggedIn") == 1)
         {
             string curUsername = PlayerPrefs.GetString("lastLoggedInUser");
             string curPIN = PlayerPrefs.GetString("lastUserPIN");
-            StartCoroutine(NetworkController.AccountLogin(curUsername, curPIN));
+            Login(curUsername, curPIN);
         }
         else
         {
-            PlayerPrefs.SetString("lastLoggedInUser", "");
-            PlayerPrefs.SetString("lastUserPIN", "");
             loginCanvas.SetActive(true);
+            currentScreen = loginScreen;
         }
+    }
+
+    void Login(string acctUsername, string acctPassword)
+    {
+        Debug.Log("Login\nU:" + acctUsername + "\nP:" + acctPassword);
+        loadingScreen.SetActive(true);
+        //Call php login script
+        StartCoroutine(NetworkController.AccountLogin(acctUsername, acctPassword));
     }
 
     public void OnButtonTutorial()
@@ -192,48 +232,53 @@ public class MainMenuController : MonoBehaviour {
             Debug.Log("Username and password are both entered");
             errorText.text = "";
 
-            //Call php login script
-            StartCoroutine(NetworkController.AccountLogin(usernameIF.text, pinIF.text));
+            Login(usernameIF.text, pinIF.text);
         }
     }
 
     public void AccountLoginCallback(string messageFromServer)
     {
+       
         if (messageFromServer.StartsWith("Error:"))
         {
+            loadingScreen.SetActive(false);
             messageFromServer = messageFromServer.Remove(0, 7);
             if (messageFromServer == "Incorrect Username or PIN")
             {
                 errorText.text = "Incorrect Username or PIN";
             }
+            else
+            {
+                errorText.text = "Login Error, Please Try Again Later";
+            }
         }
         else if (messageFromServer.StartsWith("Login success!"))
         {
-            if (PlayerPrefs.GetString("lastLoggedInUser") == "")
+            if (loginCanvas.activeSelf)
             {
-                Debug.Log("Player Prefs not saved");
-                //Check if the "Stay Signed In" Toggle is checked
-                if (staySignedInToggle.isOn == true)
+                if (staySignedInToggle.isOn)
                 {
-                    PlayerPrefs.SetString("lastLoggedInUser", usernameIF.text);
-                    PlayerPrefs.SetString("lastUserPIN", pinIF.text);
+                    Debug.Log("keeping prefs");
+                    PlayerPrefs.SetInt("stayLoggedIn", 1);
                 }
                 else
                 {
-                    PlayerPrefs.SetString("lastLoggedInUser", "");
-                    PlayerPrefs.SetString("lastUserPIN", "");
+                    PlayerPrefs.SetInt("stayLoggedIn", 0);
                 }
+                PlayerPrefs.SetString("lastLoggedInUser", usernameIF.text);
+                PlayerPrefs.SetString("lastUserPIN", pinIF.text);
 
                 usernameIF.text = "";
                 pinIF.text = "";
                 loginCanvas.SetActive(false);
             }
-            
+ 
             string playerID = messageFromServer.Remove(0, 14);
             Debug.Log("Login Success and mfs = " + playerID);
             GlobalData.instance.playerID = playerID;
 
             userHomepageCanvas.SetActive(true);
+            currentScreen = userHomepageScreen;
             StartCoroutine(PopulateUserHomepage());
         }
         else
@@ -250,6 +295,7 @@ public class MainMenuController : MonoBehaviour {
 
         loginCanvas.SetActive(false);
         createUserCanvas.SetActive(true);
+        currentScreen = createUserScreen;
     }
 
     public void OnButtonCreateAccount()
@@ -313,6 +359,7 @@ public class MainMenuController : MonoBehaviour {
             newEmailIF.text = "";
             createUserCanvas.SetActive(false);
             loginCanvas.SetActive(true);
+            currentScreen = loginScreen;
         }
         else
         {
@@ -378,6 +425,7 @@ public class MainMenuController : MonoBehaviour {
         {
             Debug.LogError("Error while fetching game requests: " + fetchGameRequests.error);
         }
+        loadingScreen.SetActive(false);
     }
 
     /// <summary>
@@ -513,7 +561,7 @@ public class MainMenuController : MonoBehaviour {
             Debug.LogError("Could not fetch user's games.\n" + fetchUserGames.error);
             errorText.text = "Could not fetch your games, try again later.";
         }
-
+        loadingScreen.SetActive(false);
         NetworkController.instance.ServerCallTime(startTime, "PopulateUserHomepage");
     }
 
@@ -533,7 +581,9 @@ public class MainMenuController : MonoBehaviour {
 
         GlobalData.instance.SetupLoadGameDataHelper(gamePlayerID, gameID, lastCmdIndex, gameUnitsInfo, gameBoardInfo, whoseTurn);
 
-        SceneManager.LoadScene("Scene2");
+        loadingScreen.SetActive(true);
+
+        SceneManager.LoadScene("PublicAlphaField");
     }
 
     public void OnButtonNewGame()
@@ -542,6 +592,8 @@ public class MainMenuController : MonoBehaviour {
 
         userHomepageCanvas.SetActive(false);
         createGameCanvas.SetActive(true);
+        otherUsernameIF.text = "";
+        currentScreen = createGameScreen;
     }
 
     public void OnButtonCreateGame()
@@ -553,7 +605,8 @@ public class MainMenuController : MonoBehaviour {
         otherUsername = otherUsernameIF.text;
 
         createGameCanvas.SetActive(false);
-        draftTeamCanvas.SetActive(true);
+        ShowDraftScreen();
+        currentScreen = draftTeamScreen;
         //StartCoroutine(CreateGame());
     }
 
@@ -575,7 +628,8 @@ public class MainMenuController : MonoBehaviour {
             errorText.text = "";
             gameIdToJoin = gameID;
             userHomepageCanvas.SetActive(false);
-            draftTeamCanvas.SetActive(true);
+            ShowDraftScreen();
+            currentScreen = draftTeamScreen;
         }
     }
 
@@ -585,6 +639,12 @@ public class MainMenuController : MonoBehaviour {
         wasGameRequested = gameRequested;
         userHomepageCanvas.SetActive(false);
         requestedGamesCanvas.SetActive(false);
+        ShowDraftScreen();
+        currentScreen = draftTeamScreen;
+    }
+
+    void ShowDraftScreen()
+    {
         draftTeamCanvas.SetActive(true);
     }
 
@@ -596,7 +656,6 @@ public class MainMenuController : MonoBehaviour {
         serverErrorText.text = "";
         tryAgainButtonHandler();
     }
-
 
     IEnumerator JoinGame()
     {
@@ -626,6 +685,7 @@ public class MainMenuController : MonoBehaviour {
         dbCredentials.AddField("boardSize", boardSize);
         dbCredentials.AddField("otherUsername", otherUsername);
         dbCredentials.AddField("teamInfo", teamInfo);
+        dbCredentials.AddField("gameVersion", Application.version);
         //Debug.Log("PID = " + GlobalData.instance.playerID);
 
         WWW newGameRequest = new WWW(serverAddress + "createNewGame.php", dbCredentials);
@@ -647,7 +707,7 @@ public class MainMenuController : MonoBehaviour {
             GlobalData.instance.SetupLoadGameDataHelper("0", newGameRequest.text, "0", teamInfo, boardSize, "1");
             //Coroutine sendCMD = StartCoroutine(NetworkController.instance.SendData("&grd|" + 7 + "," + 8, 0, newGameRequest.text, teamInfo));
             //yield return sendCMD;
-            SceneManager.LoadScene("Scene2");
+            SceneManager.LoadScene("PublicAlphaField");
         }
         else
         {
@@ -697,7 +757,7 @@ public class MainMenuController : MonoBehaviour {
             string gameBoardSize = attemptGameJoin.text.Split('@')[1];
             string allTeamInfo = attemptGameJoin.text.Split('@')[3];
             GlobalData.instance.SetupLoadGameDataHelper("1", gameID, "0", allTeamInfo, gameBoardSize, "1");
-            SceneManager.LoadScene("Scene2");
+            SceneManager.LoadScene("PublicAlphaField");
         }
         else
         {
@@ -705,6 +765,33 @@ public class MainMenuController : MonoBehaviour {
             serverErrorText.text = "Error: " + attemptGameJoin.error;
             tryAgainButton.gameObject.SetActive(true);
         }   
+    }
+
+    IEnumerator SubmitFeedback()
+    {
+        Debug.Log("SendingFeedback");
+
+        WWWForm feedbackForm = new WWWForm();
+        feedbackForm.AddField("username", dbUsername);
+        feedbackForm.AddField("password", dbPassword);
+        feedbackForm.AddField("playerID", GlobalData.instance.playerID);
+        feedbackForm.AddField("feedback", feedbackIF.text);
+
+        WWW sendFeedback = new WWW(serverAddress + "submitFeedback.php", feedbackForm);
+
+        yield return sendFeedback;
+
+        loadingScreen.SetActive(false);
+
+        if(sendFeedback.error == null)
+        {
+            Debug.Log("Feedback Sent!\nFrom server: " + sendFeedback.text);
+            GoBack();
+        }
+        else
+        {
+            Debug.LogError("Error: could not send feedback!\n" + sendFeedback.error);
+        }
     }
 
     public void OnPlayerSelect(int playerID)
@@ -735,6 +822,7 @@ public class MainMenuController : MonoBehaviour {
     public void OnConfirmButtonSelect()
     {
         //GlobalData.instance.teamStr = teamStr;
+        currentScreen = null;
         draftTeamCanvas.SetActive(false);
         loadingScreen.SetActive(true);
         if (gameIdToJoin == "")
@@ -748,6 +836,11 @@ public class MainMenuController : MonoBehaviour {
     }
 
     public void OnClearButtonSelect()
+    {
+        ClearTeamSelection();
+    }
+
+    void ClearTeamSelection()
     {
         foreach (Image i in team)
         {
@@ -777,6 +870,8 @@ public class MainMenuController : MonoBehaviour {
     {
         userHomepageCanvas.SetActive(false);
         requestedGamesCanvas.SetActive(true);
+        loadingScreen.SetActive(true);
+        currentScreen = requestedGamesScreen;
         StartCoroutine(PopulateRequestsPage());
     }
 
@@ -788,6 +883,26 @@ public class MainMenuController : MonoBehaviour {
         }
         requestedGamesCanvas.SetActive(false);
         userHomepageCanvas.SetActive(true);
+    }
+
+    public void OnButtonLogout()
+    {
+        PlayerPrefs.DeleteAll();
+        SceneManager.LoadScene("PublicAlphaMainMenu");
+    }
+
+    public void OnButtonFeedback()
+    {
+        userHomepageCanvas.SetActive(false);
+        feedbackCanvas.SetActive(true);
+        currentScreen = feedbackScreen;
+        feedbackIF.text = "";
+    }
+
+    public void OnButtonSubmitFeedback()
+    {
+        loadingScreen.SetActive(true);
+        StartCoroutine(SubmitFeedback());
     }
 
     IEnumerator Notify()
@@ -805,5 +920,30 @@ public class MainMenuController : MonoBehaviour {
         {
             Debug.LogError("Error: " + notificationTest.error);
         }
+    }
+}
+
+[System.Serializable]
+public class MainMenuScreen
+{
+    GameObject m_screen;
+    MainMenuScreen m_previousScreen;
+
+    public MainMenuScreen GoBack()
+    {
+        if (m_previousScreen == null)
+        {
+            return this;
+        }
+
+        m_screen.SetActive(false);
+        m_previousScreen.m_screen.SetActive(true);
+        return m_previousScreen;
+    }
+
+    public MainMenuScreen(GameObject screen, MainMenuScreen previousScreen)
+    {
+        m_screen = screen;
+        m_previousScreen = previousScreen;
     }
 }

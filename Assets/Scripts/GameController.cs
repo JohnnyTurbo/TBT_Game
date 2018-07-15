@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public enum GameState { PlayerSelectTile, PlayerSelectAction, PlayerMoveUnit, PlayerAttackUnit, EnemyTurn, GameOver };
 
@@ -14,12 +15,13 @@ public class GameController : MonoBehaviour {
     public GameObject basicLandUnitPrefab;
     public GameObject damageAmtTextPrefab;
     public GameObject WorldSpaceCanvas;
+	public GameObject loadingScreen;
     public GameObject[] unitTypes;
     public int numPlayerUnits, numEnemyUnits;
     public int tileSize;
     public const int numTeams = 2;
     public int playerTeamID;
-    public int nextPlayerID;
+	public int nextPlayerID;
     public int[] numPlayersOnBench;
     public TileController[,] mapGrid;
     public UnitController curUnit = null;
@@ -41,13 +43,14 @@ public class GameController : MonoBehaviour {
     int camPositionIndex = 1;
     bool isCameraMoving = false;
     bool bothTeamsSpawned = false;
+    bool waitingForTurn = false;
     string teamStr, gameID;
 
     string thisTurnCMDs = "";
     GameObject actionCanvas, statCanvas, messageCanvas, generalActionCanvas, debugCanvas;
     Text numUnitsText, attackText, defenseText, movementText, rangeText, unitTypeText, messageText, debugStateText, debugGameID;
     Text p1Label, p2Label;
-    Button moveActionButton, attackActionButton, endTurnButton;
+    Button moveActionButton, attackActionButton, endTurnButton, backButton;
     TileController prevHoveredTile = null;
     List<TileController> availableTiles;
     Coroutine messageCoro;
@@ -99,7 +102,8 @@ public class GameController : MonoBehaviour {
 
         //Find the UI components on the generalActionCanvas
         endTurnButton = generalActionCanvas.transform.Find("EndTurnButton").GetComponent<Button>();
-        p1Label = generalActionCanvas.transform.Find("Player1Label").GetComponent<Text>();
+		backButton = generalActionCanvas.transform.Find ("BackButton").GetComponent<Button> ();
+		p1Label = generalActionCanvas.transform.Find("Player1Label").GetComponent<Text>();
         p2Label = generalActionCanvas.transform.Find("Player2Label").GetComponent<Text>();
 
         //Find the UI componenets on the debugStateCanvas
@@ -112,6 +116,8 @@ public class GameController : MonoBehaviour {
         p1Label.gameObject.SetActive(false);
         p2Label.gameObject.SetActive(false);
 
+		backButton.onClick.AddListener (LoadMainMenu);
+
         //InitializeMap(0 == GlobalData.instance.playerID);
         //SpawnUnits();
 
@@ -123,6 +129,7 @@ public class GameController : MonoBehaviour {
         }
         else
         {
+            Firebase.Messaging.FirebaseMessaging.MessageReceived += FCMReceived;
             Camera.main.transform.position = new Vector3(7.25f, 18, 7);
             Camera.main.transform.rotation = Quaternion.Euler(90, -90, 0);
             Camera.main.orthographic = true;
@@ -130,6 +137,7 @@ public class GameController : MonoBehaviour {
             generalActionCanvas.transform.Find("CamMoveIcon").gameObject.SetActive(false);
         }
         StartCoroutine(SetupGame());
+		loadingScreen.SetActive (false);
     }
 
     IEnumerator SetupGame()
@@ -141,6 +149,18 @@ public class GameController : MonoBehaviour {
             Debug.Log("Game has data: " + GlobalData.instance.CurGameDataToString());
             playerTeamID = (gameData[0] == "0") ? 0 : 1;
             nextPlayerID = (gameData[0] == "0") ? 1 : 0;
+            if(playerTeamID == 0)
+            {
+                p1Label.gameObject.SetActive(true);
+            }
+            else if(playerTeamID == 1)
+            {
+                p2Label.gameObject.SetActive(true);
+            }
+            else
+            {
+                Debug.LogError("Error: Unknown Team ID");
+            }
             gameID = gameData[1];
             int.TryParse(gameData[2], out indexOfLastCommand);
             //Debug.Log("indexOfLastCommand = " + indexOfLastCommand);
@@ -393,6 +413,17 @@ public class GameController : MonoBehaviour {
                 debugStateText.text = "GameState: ERROR";
                 return;
         }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            LoadMainMenu();
+        }
+    }
+
+    void LoadMainMenu()
+    {
+        GlobalData.instance.returningToLoginScreen = true;
+        SceneManager.LoadScene("PublicAlphaMainMenu");
     }
 
     IEnumerator GetCommands()
@@ -812,6 +843,11 @@ public class GameController : MonoBehaviour {
     IEnumerator WaitForMyTurn()
     {
         Debug.Log("WaitForMyTurn()");
+
+        debugGameID.text = "W8";
+
+        waitingForTurn = true;
+
         int nextID = nextPlayerID;
 
         //Debug.Log("MyID: " + playerTeamID + ", nextPlayerID: " + nextPlayerID);
@@ -819,15 +855,31 @@ public class GameController : MonoBehaviour {
         //NetworkController.instance.SendStringToDB(thisTurnCMDs, nextPlayerID);
 
         while (nextID != playerTeamID) {
+            if (Application.isEditor)
+            {
+                CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.RecieveTurn(gameID));
+                yield return cd.coroutine;
 
-            CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.RecieveTurn(gameID));
-            yield return cd.coroutine;
+                //Debug.Log(cd.result);
 
-            //Debug.Log(cd.result);
+                //string helperStr = (string)cd.result;
+                nextID = int.Parse((string)cd.result);
+                yield return new WaitForSecondsRealtime(0.5f);
+            }
+            else
+            {
+                while (waitingForTurn)
+                {
+                    yield return null;
+                }
+                CoroutineWithData cd = new CoroutineWithData(this, NetworkController.instance.RecieveTurn(gameID));
+                yield return cd.coroutine;
 
-            //string helperStr = (string)cd.result;
-            nextID = int.Parse((string)cd.result);
-            yield return new WaitForSecondsRealtime(0.5f);
+                //Debug.Log(cd.result);
+
+                //string helperStr = (string)cd.result;
+                nextID = int.Parse((string)cd.result);
+            }
         }
 
         Debug.Log("Before GetCommands() lastCMDindex is: " + indexOfLastCommand);
@@ -949,6 +1001,22 @@ public class GameController : MonoBehaviour {
         }
         //messageText.color = new Color(messageText.color.r, messageText.color.g, messageText.color.b, 1);
         messageCanvas.SetActive(false);
+    }
+
+    public void FCMReceived(object sender, Firebase.Messaging.MessageReceivedEventArgs e)
+    {
+        debugGameID.text = "NEW MESG!";
+        string msgGameID;
+        if(e.Message.Data.TryGetValue("gameID", out msgGameID))
+        {
+            debugGameID.text = "no w8 - " + msgGameID;
+            waitingForTurn = false;
+        }
+    }
+
+    public void OnButtonBack()
+    {
+
     }
 }
 
