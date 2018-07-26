@@ -10,7 +10,6 @@ public class FirebaseNotificationController : MonoBehaviour {
         //Firebase.Messaging.FirebaseMessaging.MessageReceived += OnMessageReceived;
 
         Firebase.Messaging.FirebaseMessaging.Subscribe("all");
-
     }
 
     public void OnTokenReceived(object sender, Firebase.Messaging.TokenReceivedEventArgs token)

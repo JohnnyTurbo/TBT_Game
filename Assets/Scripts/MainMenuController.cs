@@ -62,6 +62,20 @@ public class MainMenuController : MonoBehaviour {
     void Start()
     {
 
+        //Android Messing around
+
+        AndroidJavaClass UnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+        AndroidJavaObject curActivity = UnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+        AndroidJavaObject curIntent = curActivity.Call<AndroidJavaObject>("getIntent");
+        string intString = curIntent.Call<string>("getDataString");
+
+        Debug.Log("curActivity<" + curActivity.Call<string>("getLocalClassName") + ">");
+        Debug.Log("curIntent<" + intString + ">");
+        
+        //End android messing around
+
+
+
         //PlayerPrefs.DeleteAll();
 
         //Find needed objects
@@ -99,6 +113,13 @@ public class MainMenuController : MonoBehaviour {
 
         errorText.text = "";
         serverErrorText.text = "";
+
+
+
+        errorText.text = "curIntent<" + intString + ">";
+
+
+
 
         //TODO Check if they have played the tutorial before
         playButton.interactable = GlobalData.instance.hasPlayedTutorial;
@@ -393,11 +414,14 @@ public class MainMenuController : MonoBehaviour {
 
         yield return fetchGameRequests;
 
+        Debug.Log("returned from requesting");
+
         if(fetchGameRequests.error == null)
         {
             
             if(fetchGameRequests.text == "")
             {
+                loadingScreen.SetActive(false);
                 yield break;
             }
             string fullRequestString = fetchGameRequests.text.Remove(fetchGameRequests.text.Length - 1);
@@ -425,7 +449,6 @@ public class MainMenuController : MonoBehaviour {
         {
             Debug.LogError("Error while fetching game requests: " + fetchGameRequests.error);
         }
-        loadingScreen.SetActive(false);
     }
 
     /// <summary>

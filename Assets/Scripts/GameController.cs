@@ -527,7 +527,8 @@ public class GameController : MonoBehaviour {
                 UnitController attackingUnit = unitsInGame[numTeams][attackingUnitID];
                 TileController affectedUnitTile = mapGrid[affectedUnit.curCoords.x, affectedUnit.curCoords.y];
                 affectedUnitTile.AttemptUnitAttack(attackingUnit, out newHealth);
-
+                Handheld.Vibrate();
+                
                 break;
 
             //Game Over
