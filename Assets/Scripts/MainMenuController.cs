@@ -13,9 +13,9 @@ public class MainMenuController : MonoBehaviour {
     private static MainMenuController _instance;
 
     public static MainMenuController instance;
-    
+
     public GameObject mainMenuCanvas, loginCanvas, createUserCanvas, userHomepageCanvas, createGameCanvas, draftTeamCanvas,
-                      loadingScreenCanvas, mainOptionsCanvas, requestedGamesCanvas, errorCanvas, feedbackCanvas;
+                      loadingScreenCanvas, mainOptionsCanvas, requestedGamesCanvas, errorCanvas, feedbackCanvas, gratitudeCanvas;
     public GameObject activeGameButtonPrefab, pendingGameButtonPrefab, pastGameButtonPrefab;
     public Sprite[] athletes;
     public Image[] team;
@@ -30,12 +30,13 @@ public class MainMenuController : MonoBehaviour {
     Sprite SelectionCircleStartSpr;
     InputField usernameIF, pinIF, newUsernameIF, newPinIF, newPinConfIF, newEmailIF, gameIDIF, otherUsernameIF, feedbackIF;
     Text errorText, serverErrorText;
-    GameObject loadingScreen, usersGamesContainer, requestedGamesContainer;
+    GameObject loadingGraphic, usersGamesContainer, requestedGamesContainer;
     MainMenuScreen currentScreen;
     MainMenuScreen mainOptionsScreen, loginScreen, createUserScreen, userHomepageScreen, requestedGamesScreen, 
                    createGameScreen, draftTeamScreen, feedbackScreen;
     Button tryAgainButton, playButton, tutorialButton;
     Toggle staySignedInToggle;
+    ScrollRect userGamesScrollView;
 
     VideoPlayer introVP;
 
@@ -63,19 +64,34 @@ public class MainMenuController : MonoBehaviour {
     {
 
         //Android Messing around
+        /*
+        if (!Application.isEditor)
+        {
 
-        AndroidJavaClass UnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-        AndroidJavaObject curActivity = UnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-        AndroidJavaObject curIntent = curActivity.Call<AndroidJavaObject>("getIntent");
-        string intString = curIntent.Call<string>("getDataString");
+            AndroidJavaClass UnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            AndroidJavaObject curActivity = UnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+            AndroidJavaObject curIntent = curActivity.Call<AndroidJavaObject>("getIntent");
+            string[] intStringArr = curIntent.Call<string[]>("getStringArrayExtra", "sceneToOpen");
+            string intString = curIntent.Call<string>("getStringExtra", "sceneToOpen");
 
-        Debug.Log("curActivity<" + curActivity.Call<string>("getLocalClassName") + ">");
-        Debug.Log("curIntent<" + intString + ">");
-        
-        //End android messing around
+            Debug.Log("curActivity<" + curActivity.Call<string>("getLocalClassName") + ">");
+            Debug.Log("curIntent<" + intString + ">");
+            if (intStringArr != null)
+            {
+                int i = 0;
+                foreach (string str in intStringArr)
+                {
+                    Debug.Log("intStringArr[" + i + "] is <" + str + ">");
+                }
+            }
+            else
+            {
+                Debug.Log("intStringArr is NULL");
+            }
+            //End android messing around
 
-
-
+        }
+        */
         //PlayerPrefs.DeleteAll();
 
         //Find needed objects
@@ -95,13 +111,14 @@ public class MainMenuController : MonoBehaviour {
         newEmailIF = createUserCanvas.transform.Find("NewEmailIF").GetComponent<InputField>();
 
         gameIDIF = userHomepageCanvas.transform.Find("GameIDIF").GetComponent<InputField>();
-        usersGamesContainer = userHomepageCanvas.transform.Find("ScrollView").Find("UsersGamesContainer").gameObject;
+        userGamesScrollView = userHomepageCanvas.transform.Find("ScrollView").GetComponent<ScrollRect>();
+        usersGamesContainer = userGamesScrollView.transform.Find("UsersGamesContainer").gameObject;
 
         otherUsernameIF = createGameCanvas.transform.Find("OtherUsernameIF").GetComponent<InputField>();
 
-        loadingScreen = loadingScreenCanvas.transform.Find("LoadingScreen").gameObject;
-        serverErrorText = loadingScreen.transform.Find("ServerErrorText").GetComponent<Text>();
-        tryAgainButton = loadingScreen.transform.Find("TryAgainButton").GetComponent<Button>();
+        loadingGraphic = loadingScreenCanvas.transform.Find("LoadingScreen").gameObject;
+        serverErrorText = loadingGraphic.transform.Find("ServerErrorText").GetComponent<Text>();
+        tryAgainButton = loadingGraphic.transform.Find("TryAgainButton").GetComponent<Button>();
 
         requestedGamesContainer = requestedGamesCanvas.transform.Find("ScrollView").Find("RequestedGamesContainer").gameObject;
 
@@ -116,7 +133,7 @@ public class MainMenuController : MonoBehaviour {
 
 
 
-        errorText.text = "curIntent<" + intString + ">";
+        //errorText.text = "curIntent<" + intString + ">";
 
 
 
@@ -132,10 +149,16 @@ public class MainMenuController : MonoBehaviour {
 
 		backButton.onClick.AddListener (GoBack);
 
+        OnMMScreenActive refreshUserHomepage = delegate ()
+        {
+            loadingGraphic.SetActive(true);
+            StartCoroutine(PopulateUserHomepage());
+        };
+
         mainOptionsScreen = new MainMenuScreen(mainOptionsCanvas, null);
         loginScreen = new MainMenuScreen(loginCanvas, mainOptionsScreen);
         createUserScreen = new MainMenuScreen(createUserCanvas, loginScreen);
-        userHomepageScreen = new MainMenuScreen(userHomepageCanvas, mainOptionsScreen);
+        userHomepageScreen = new MainMenuScreen(userHomepageCanvas, mainOptionsScreen, refreshUserHomepage);
         requestedGamesScreen = new MainMenuScreen(requestedGamesCanvas, userHomepageScreen);
         createGameScreen = new MainMenuScreen(createGameCanvas, userHomepageScreen);
         draftTeamScreen = new MainMenuScreen(draftTeamCanvas, userHomepageScreen);
@@ -151,11 +174,81 @@ public class MainMenuController : MonoBehaviour {
         requestedGamesCanvas.SetActive(false);
         feedbackCanvas.SetActive(false);
         tryAgainButton.gameObject.SetActive(false);
-        loadingScreen.SetActive(false);
+        loadingGraphic.SetActive(false);
+        gratitudeCanvas.SetActive(false);
 
         currentScreen = mainOptionsScreen;
 
-        if(PlayerPrefs.GetInt("stayLoggedIn") == 1 || GlobalData.instance.returningToLoginScreen) {
+        StartCoroutine(CheckForEOL());
+    }
+
+    private void OnApplicationPause(bool pause)
+    {
+        if (!pause)
+        {
+            Debug.Log("not paused");
+
+            SceneManager.LoadScene("PublicAlphaMainMenu");
+            
+            /*
+            if (!Application.isEditor)
+            {
+
+                AndroidJavaClass UnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                AndroidJavaObject curActivity = UnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                AndroidJavaObject curIntent = curActivity.Call<AndroidJavaObject>("getIntent");
+
+                string intString = curIntent.Call<string>("getStringExtra", "sceneToOpen");
+
+                Debug.Log("curIntent<" + intString + ">");                
+            }
+            */
+        }
+        else
+        {
+            Debug.Log("is paused");
+        }
+    }
+
+    IEnumerator CheckForEOL()
+    {
+        Debug.Log("Checking for EOL");
+        loadingGraphic.SetActive(true);
+
+        WWW eolCheck = new WWW(serverAddress + "eolCheck.php");
+
+        yield return eolCheck;
+
+        if(eolCheck.error == null)
+        {
+            if (eolCheck.text == "Play Ball!")
+            {
+                Debug.Log("Alpha test still active!");
+                loadingGraphic.SetActive(false);
+                AttemptLogin();
+            }
+            else if (eolCheck.text == "End of Alpha!")
+            {
+                Debug.Log("End of Alpha!");
+                gratitudeCanvas.SetActive(true);
+            }
+            else
+            {
+                Debug.Log("Unknown Error: " + eolCheck.text);
+                errorText.text = "Could not verify date. Try again later.";
+            }
+        }
+        else
+        {
+            Debug.Log("Unknown Error: " + eolCheck.error);
+            errorText.text = "Could not verify date. Try again later.";
+        }
+    }
+
+    void AttemptLogin()
+    {
+        if (PlayerPrefs.GetInt("stayLoggedIn") == 1 || GlobalData.instance.returningToLoginScreen)
+        {
             Debug.Log("AttemptingLogin" + PlayerPrefs.GetInt("stayLoggedIn"));
             GlobalData.instance.returningToLoginScreen = false;
             mainOptionsCanvas.SetActive(false);
@@ -195,7 +288,7 @@ public class MainMenuController : MonoBehaviour {
     void Login(string acctUsername, string acctPassword)
     {
         Debug.Log("Login\nU:" + acctUsername + "\nP:" + acctPassword);
-        loadingScreen.SetActive(true);
+        loadingGraphic.SetActive(true);
         //Call php login script
         StartCoroutine(NetworkController.AccountLogin(acctUsername, acctPassword));
     }
@@ -205,7 +298,7 @@ public class MainMenuController : MonoBehaviour {
         Debug.Log("OnButtonTutorial()");
         GlobalData.instance.hasPlayedTutorial = true;
         playButton.interactable = true;
-        loadingScreen.SetActive(true);
+        loadingGraphic.SetActive(true);
         SceneManager.LoadScene("PublicAlphaTutorial");
     }
 
@@ -214,7 +307,7 @@ public class MainMenuController : MonoBehaviour {
         Debug.Log("OnButtonIntroVideo");
         //Handheld.PlayFullScreenMovie("Videos/JT_SoupsOn2017.mov", Color.black, FullScreenMovieControlMode.Hidden, 
         //                             FullScreenMovieScalingMode.AspectFit);
-        loadingScreen.SetActive(true);
+        loadingGraphic.SetActive(true);
         //initialOptions.SetActive(false);
         introVP.Play();
         introVP.loopPointReached += LoopPointReached;
@@ -225,7 +318,7 @@ public class MainMenuController : MonoBehaviour {
         //throw new System.NotImplementedException();
         Debug.Log("LoopPointReached()");
         introVP.Stop();
-        loadingScreen.SetActive(false);
+        loadingGraphic.SetActive(false);
         GlobalData.instance.hasSeenIntroVid = true;
         tutorialButton.interactable = true;
     }
@@ -262,7 +355,7 @@ public class MainMenuController : MonoBehaviour {
        
         if (messageFromServer.StartsWith("Error:"))
         {
-            loadingScreen.SetActive(false);
+            loadingGraphic.SetActive(false);
             messageFromServer = messageFromServer.Remove(0, 7);
             if (messageFromServer == "Incorrect Username or PIN")
             {
@@ -301,6 +394,10 @@ public class MainMenuController : MonoBehaviour {
             userHomepageCanvas.SetActive(true);
             currentScreen = userHomepageScreen;
             StartCoroutine(PopulateUserHomepage());
+        }
+        else if(messageFromServer.StartsWith("End of Alpha!"))
+        {
+            gratitudeCanvas.SetActive(true);
         }
         else
         {
@@ -415,13 +512,14 @@ public class MainMenuController : MonoBehaviour {
         yield return fetchGameRequests;
 
         Debug.Log("returned from requesting");
+        loadingGraphic.SetActive(false);
 
-        if(fetchGameRequests.error == null)
+        if (fetchGameRequests.error == null)
         {
             
             if(fetchGameRequests.text == "")
             {
-                loadingScreen.SetActive(false);
+                loadingGraphic.SetActive(false);
                 yield break;
             }
             string fullRequestString = fetchGameRequests.text.Remove(fetchGameRequests.text.Length - 1);
@@ -463,6 +561,15 @@ public class MainMenuController : MonoBehaviour {
     {
         float startTime = Time.time;
 
+        if(usersGamesContainer.transform.childCount > 0)
+        {
+            //List<GameObject> oldChildren = new List<GameObject>();
+            foreach(Transform oc in usersGamesContainer.transform)
+            {
+                Destroy(oc.gameObject);
+            }
+        }
+
         WWWForm getActiveGames = new WWWForm();
 
         getActiveGames.AddField("username", dbUsername);
@@ -480,6 +587,7 @@ public class MainMenuController : MonoBehaviour {
             {
                 Debug.Log("User Has No Games");
                 NetworkController.instance.ServerCallTime(startTime, "PopulateUserHomepage");
+                loadingGraphic.SetActive(false);
                 yield break;
             }
 
@@ -584,7 +692,8 @@ public class MainMenuController : MonoBehaviour {
             Debug.LogError("Could not fetch user's games.\n" + fetchUserGames.error);
             errorText.text = "Could not fetch your games, try again later.";
         }
-        loadingScreen.SetActive(false);
+        loadingGraphic.SetActive(false);
+        userGamesScrollView.verticalNormalizedPosition = 1f;
         NetworkController.instance.ServerCallTime(startTime, "PopulateUserHomepage");
     }
 
@@ -604,7 +713,7 @@ public class MainMenuController : MonoBehaviour {
 
         GlobalData.instance.SetupLoadGameDataHelper(gamePlayerID, gameID, lastCmdIndex, gameUnitsInfo, gameBoardInfo, whoseTurn);
 
-        loadingScreen.SetActive(true);
+        loadingGraphic.SetActive(true);
 
         SceneManager.LoadScene("PublicAlphaField");
     }
@@ -804,7 +913,7 @@ public class MainMenuController : MonoBehaviour {
 
         yield return sendFeedback;
 
-        loadingScreen.SetActive(false);
+        loadingGraphic.SetActive(false);
 
         if(sendFeedback.error == null)
         {
@@ -847,7 +956,7 @@ public class MainMenuController : MonoBehaviour {
         //GlobalData.instance.teamStr = teamStr;
         currentScreen = null;
         draftTeamCanvas.SetActive(false);
-        loadingScreen.SetActive(true);
+        loadingGraphic.SetActive(true);
         if (gameIdToJoin == "")
         {
             StartCoroutine(JoinGame());
@@ -893,7 +1002,7 @@ public class MainMenuController : MonoBehaviour {
     {
         userHomepageCanvas.SetActive(false);
         requestedGamesCanvas.SetActive(true);
-        loadingScreen.SetActive(true);
+        loadingGraphic.SetActive(true);
         currentScreen = requestedGamesScreen;
         StartCoroutine(PopulateRequestsPage());
     }
@@ -924,8 +1033,14 @@ public class MainMenuController : MonoBehaviour {
 
     public void OnButtonSubmitFeedback()
     {
-        loadingScreen.SetActive(true);
+        loadingGraphic.SetActive(true);
         StartCoroutine(SubmitFeedback());
+    }
+
+    public void OnButtonRefresh()
+    {
+        loadingGraphic.SetActive(true);
+        StartCoroutine(PopulateUserHomepage());
     }
 
     IEnumerator Notify()
@@ -946,11 +1061,14 @@ public class MainMenuController : MonoBehaviour {
     }
 }
 
+public delegate void OnMMScreenActive();
+
 [System.Serializable]
 public class MainMenuScreen
 {
     GameObject m_screen;
     MainMenuScreen m_previousScreen;
+    OnMMScreenActive m_methodToCall;
 
     public MainMenuScreen GoBack()
     {
@@ -961,12 +1079,25 @@ public class MainMenuScreen
 
         m_screen.SetActive(false);
         m_previousScreen.m_screen.SetActive(true);
+        if (m_previousScreen.m_methodToCall != null)
+        {
+            Debug.Log("calling delegate");
+            m_previousScreen.m_methodToCall();
+        }
         return m_previousScreen;
+    }
+
+    public MainMenuScreen(GameObject screen, MainMenuScreen previousScreen, OnMMScreenActive methodToCall)
+    {
+        m_screen = screen;
+        m_previousScreen = previousScreen;
+        m_methodToCall = methodToCall;
     }
 
     public MainMenuScreen(GameObject screen, MainMenuScreen previousScreen)
     {
         m_screen = screen;
         m_previousScreen = previousScreen;
+        m_methodToCall = null;
     }
 }
